@@ -1,0 +1,2782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>US Appointment Desk — NextBillion Scheduler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://maps-gl.nextbillion.io/maps/v2/api/css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #e8eef4;
+      --bg-2: #dfe7f0;
+      --surface: #ffffff;
+      --ink: #132033;
+      --muted: #5b6b7c;
+      --line: #d0dae6;
+      --teal: #0d9488;
+      --teal-dark: #0f766e;
+      --teal-soft: #ccfbf1;
+      --sky: #0284c7;
+      --ok: #15803d;
+      --ok-soft: #dcfce7;
+      --warn: #b45309;
+      --danger: #b91c1c;
+      --shadow: 0 10px 30px rgba(19, 32, 51, 0.08);
+      --radius: 16px;
+      --tech-a: #0284c7;
+      --tech-b: #7c3aed;
+      --tech-c: #059669;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; min-height: 100%;
+      font-family: "IBM Plex Sans", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #c7e7e3 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #cfe0f5 0%, transparent 50%),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
+    }
+    h1, h2, h3, .brand-title { font-family: Manrope, sans-serif; }
+    a { color: var(--sky); }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+      padding: 14px 20px;
+      background: rgba(255,255,255,0.86);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(145deg, var(--teal), #0369a1);
+      color: #fff; display: grid; place-items: center; font-weight: 800; font-family: Manrope, sans-serif;
+    }
+    .brand-title { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.03em; }
+    .brand-sub { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+    .top-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+    .field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .field input, .field select {
+      min-width: 160px; padding: 9px 11px; border-radius: 10px;
+      border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit;
+    }
+    .field input:focus, .field select:focus { outline: 2px solid rgba(13,148,136,0.25); border-color: var(--teal); }
+    button {
+      border: none; border-radius: 10px; padding: 10px 14px; font: inherit; font-weight: 700;
+      cursor: pointer; background: var(--teal); color: #fff;
+    }
+    button:hover:not(:disabled) { background: var(--teal-dark); }
+    button.secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+    button.ghost { background: transparent; color: var(--sky); border: 1px dashed #93c5fd; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 18px 20px 40px; }
+    .steps {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .step-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--line);
+      font-size: 12px; font-weight: 600; color: var(--muted);
+    }
+    .step-pill .n {
+      width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+      background: var(--bg); font-size: 11px; font-weight: 800;
+    }
+    .step-pill.active { border-color: var(--teal); color: var(--ink); box-shadow: var(--shadow); }
+    .step-pill.active .n { background: var(--teal-soft); color: var(--teal-dark); }
+    .step-pill.done { color: var(--ok); border-color: #86efac; }
+    .step-pill.done .n { background: var(--ok-soft); color: var(--ok); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 16px 18px;
+    }
+    .card h2 {
+      margin: 0 0 4px; font-size: 15px; font-weight: 800; letter-spacing: -0.02em;
+    }
+    .card .hint { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+
+    .intake-card { margin-bottom: 14px; }
+    .intake-form {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .intake-form .field input,
+    .intake-form .field select { width: 100%; min-width: 0; }
+    @media (max-width: 900px) {
+      .intake-form { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .intake-form { grid-template-columns: 1fr; }
+    }
+
+    .booking-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .booking-grid { grid-template-columns: 1fr; }
+    }
+
+    .confirm-card { display: flex; flex-direction: column; }
+    .confirm-card h2 { margin-bottom: 12px; }
+    .confirm-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+      padding: 24px 16px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+    .confirm-empty[hidden] { display: none !important; }
+    .confirm-empty p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .form-grid { display: grid; gap: 10px; }
+    .form-grid .field input, .form-grid .field select { width: 100%; min-width: 0; }
+    .addr-field { grid-column: 1 / -1; position: relative; }
+    .addr-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+    .addr-row .field { flex: 1; min-width: 0; }
+    .addr-row .field input { width: 100%; min-width: 0; }
+    .addr-suggest {
+      position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30;
+      margin: 0; padding: 6px; list-style: none;
+      background: #fff; border: 1px solid var(--line); border-radius: 12px;
+      box-shadow: var(--shadow); max-height: 260px; overflow: auto;
+    }
+    .addr-suggest[hidden] { display: none !important; }
+    .addr-suggest li button {
+      width: 100%; text-align: left; background: transparent; color: var(--ink);
+      border: none; border-radius: 8px; padding: 10px 12px; font-weight: 500;
+      box-shadow: none; display: grid; gap: 2px;
+    }
+    .addr-suggest li button:hover,
+    .addr-suggest li button.active { background: #f0fdfa; color: var(--teal-dark); }
+    .addr-suggest .title { font-weight: 700; font-size: 13px; }
+    .addr-suggest .sub { font-size: 11px; color: var(--muted); font-weight: 500; }
+    .loc-status {
+      margin-top: 10px; padding: 10px 12px; border-radius: 12px;
+      background: #f8fafc; border: 1px dashed #cbd5e1;
+      font-size: 12.5px; color: var(--muted); line-height: 1.45;
+    }
+    .loc-status.ok { border-style: solid; border-color: #86efac; background: #f0fdf4; color: var(--ok); font-weight: 600; }
+    .loc-status.err { border-style: solid; border-color: #fecaca; background: #fef2f2; color: var(--danger); font-weight: 600; }
+    .loc-status .assign { display: block; margin-top: 4px; color: var(--ink); font-weight: 600; }
+    .tech-card.assigned { border-color: #99f6e4; box-shadow: 0 0 0 1px rgba(13,148,136,0.2); }
+    .tech-card .assign-badge {
+      margin-left: auto; font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; padding: 3px 8px; border-radius: 999px;
+      background: var(--teal-soft); color: var(--teal-dark);
+    }
+
+    .calendar-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;
+    }
+    .calendar-head h3 { margin: 0; font-size: 14px; font-weight: 800; }
+    .cal-nav { display: flex; gap: 6px; }
+    .cal-nav button { padding: 7px 10px; background: #fff; color: var(--ink); border: 1px solid var(--line); }
+    .cal-weekdays, .cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    }
+    .cal-weekdays span {
+      text-align: center; font-size: 10px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; padding: 4px 0;
+    }
+    .cal-day {
+      aspect-ratio: 1; border-radius: 12px; border: 1px solid #e2e8f0;
+      background: #f8fafc; color: var(--ink); font-weight: 700; font-size: 13px;
+      display: grid; place-items: center; cursor: pointer; position: relative;
+      padding: 0; box-shadow: none;
+    }
+    .cal-day:hover:not(:disabled) { border-color: #99f6e4; background: #f0fdfa; }
+    .cal-day:disabled,
+    button.cal-day:disabled {
+      opacity: 0.38; cursor: not-allowed; background: transparent; border-color: transparent;
+      color: #94a3b8;
+    }
+    .cal-day.outside { color: #94a3b8; background: transparent; border-color: transparent; }
+    .cal-day.available:not(:disabled) {
+      background: #fff; border-color: #99f6e4; color: var(--ink);
+    }
+    .cal-day.selected,
+    button.cal-day.selected {
+      background: var(--teal); color: #fff; border-color: var(--teal-dark);
+      box-shadow: 0 8px 18px rgba(13,148,136,0.28);
+      opacity: 1;
+    }
+    .cal-day.has-bookings::after {
+      content: ""; position: absolute; bottom: 6px; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--sky);
+    }
+    .cal-day.selected.has-bookings::after { background: #fff; }
+    .selected-day-label {
+      margin-top: 12px; padding: 10px 12px; border-radius: 12px;
+      background: var(--teal-soft); color: var(--teal-dark); font-weight: 700; font-size: 13px;
+    }
+
+    .slots { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow: auto; }
+    .slot {
+      text-align: left; width: 100%; margin: 0; padding: 12px 14px;
+      background: #f8fafc; color: var(--ink); border: 1px solid var(--line);
+      display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center;
+    }
+    .slot .time { font-family: Manrope, sans-serif; font-weight: 800; font-size: 14px; color: var(--ink); }
+    .slot .meta { grid-column: 1 / -1; font-size: 12px; color: var(--muted); font-weight: 500; }
+    .slot .tag {
+      justify-self: end; font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; padding: 4px 8px; border-radius: 999px;
+      background: #e2e8f0; color: #475569;
+    }
+    .slot.recommended { border-color: #86efac; background: #f0fdf4; }
+    .slot.recommended .tag { background: var(--ok-soft); color: var(--ok); }
+    .slot.selected {
+      border-color: var(--teal); background: #f0fdfa;
+      box-shadow: inset 0 0 0 1px rgba(13,148,136,0.35);
+    }
+    /* Slots are <button>s; override the global teal button hover so text stays readable. */
+    button.slot:hover:not(:disabled),
+    button.slot.recommended:hover:not(:disabled),
+    button.slot.selected:hover:not(:disabled) {
+      background: var(--teal-dark);
+      border-color: var(--teal-dark);
+      color: #fff;
+    }
+    button.slot:hover:not(:disabled) .time,
+    button.slot.recommended:hover:not(:disabled) .time,
+    button.slot.selected:hover:not(:disabled) .time {
+      color: #fff;
+    }
+    button.slot:hover:not(:disabled) .meta,
+    button.slot.recommended:hover:not(:disabled) .meta,
+    button.slot.selected:hover:not(:disabled) .meta {
+      color: #ccfbf1;
+    }
+    button.slot:hover:not(:disabled) .tag {
+      background: rgba(255,255,255,0.22);
+      color: #fff;
+    }
+    button.slot.recommended:hover:not(:disabled) .tag {
+      background: #dcfce7;
+      color: var(--ok);
+    }
+    .empty-slots {
+      padding: 28px 16px; text-align: center; color: var(--muted); font-size: 13px;
+      border: 1px dashed var(--line); border-radius: 12px; background: #f8fafc;
+    }
+    .slot-loading {
+      padding: 22px 16px 16px;
+      text-align: center;
+      border: 1px dashed #99f6e4;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #f0fdfa, #f8fafc);
+    }
+    .slot-spinner {
+      width: 28px; height: 28px; margin: 0 auto 12px;
+      border: 3px solid #ccfbf1;
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: slot-spin 0.7s linear infinite;
+    }
+    .slot-loading-title {
+      margin: 0 0 4px;
+      font-family: Manrope, sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--ink);
+    }
+    .slot-loading-sub {
+      margin: 0 0 16px;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .slot-skeletons { display: flex; flex-direction: column; gap: 8px; }
+    .slot-skel {
+      height: 56px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #e2e8f0 0%, #f8fafc 45%, #e2e8f0 100%);
+      background-size: 200% 100%;
+      animation: slot-shimmer 1.15s ease-in-out infinite;
+    }
+    @keyframes slot-spin { to { transform: rotate(360deg); } }
+    @keyframes slot-shimmer {
+      0% { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .slot-spinner, .slot-skel { animation: none; }
+      .confirm.is-open, .confirm.is-closing { animation: none; }
+    }
+
+    .confirm {
+      padding: 16px 18px; border-radius: 14px;
+      border: 1px solid #99f6e4; background: linear-gradient(180deg, #f0fdfa, #f8fafc);
+    }
+    .confirm[hidden] { display: none !important; }
+    .confirm.is-open {
+      animation: confirm-rise 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .confirm.is-closing {
+      animation: confirm-sink 0.22s ease-in both;
+    }
+    .confirm dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 13px; }
+    .confirm dt { color: var(--muted); font-weight: 500; }
+    .confirm dd { margin: 0; font-weight: 600; color: var(--ink); }
+    .confirm .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .confirm .actions button { flex: 1; min-width: 120px; }
+    @keyframes confirm-rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes confirm-sink {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(12px); }
+    }
+
+    .lower {
+      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; margin-top: 14px;
+    }
+    @media (max-width: 900px) { .lower { grid-template-columns: 1fr; } }
+    .tech-board { display: grid; gap: 10px; }
+    .tech-card {
+      border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: #fff;
+    }
+    .tech-card header { display: flex; align-items: center; gap: 8px; font-weight: 800; font-family: Manrope, sans-serif; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .tech-meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .appt-row {
+      margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #f8fafc; border: 1px solid var(--line);
+      font-size: 12px;
+    }
+    .appt-row strong { font-family: Manrope, sans-serif; }
+    .wait { color: var(--warn); font-weight: 700; }
+    .wait.zero { color: var(--ok); }
+
+    .map-wrap {
+      position: relative;
+      height: 360px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      /* Do not use overflow:hidden here — it can break WebGL canvas init on some Windows GPUs */
+      background: #e2e8f0;
+    }
+    #map {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      border-radius: 14px;
+      background: #cbd5e1;
+    }
+    #mapPlaceholder {
+      position: absolute; inset: 0; z-index: 2;
+      display: grid; place-items: center; text-align: center; padding: 20px; color: var(--muted);
+      background: rgba(248, 250, 252, 0.96);
+      border-radius: 14px;
+    }
+    #mapPlaceholder.is-hidden {
+      display: none !important;
+    }
+    #mapPlaceholder .map-retry { margin-top: 10px; }
+    #mapPlaceholder .map-hint {
+      margin-top: 8px; font-size: 12px; color: #64748b; max-width: 340px; line-height: 1.45;
+    }
+    .log {
+      margin-top: 10px; padding: 10px; border-radius: 10px; background: #0f172a; color: #94a3b8;
+      font-family: ui-monospace, Consolas, monospace; font-size: 11px; max-height: 120px; overflow: auto;
+      white-space: pre-wrap;
+    }
+    .status {
+      margin: 0 0 14px; padding: 10px 14px; border-radius: 12px;
+      background: #fff; border: 1px solid var(--line); color: var(--muted); font-size: 13px;
+    }
+    .map-marker {
+      width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 800;
+      display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .overlay {
+      position: fixed; inset: 0; z-index: 40; background: rgba(15,23,42,0.55);
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      width: min(860px, 100%); max-height: 88vh; overflow: auto;
+      background: #fff; border-radius: 18px; padding: 20px 22px 24px; box-shadow: 0 24px 64px rgba(0,0,0,.25);
+    }
+    .modal header.guide-head {
+      display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 8px;
+    }
+    .modal h2 { margin: 0 0 6px; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+    .modal .sub { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .modal p, .modal li { color: #334155; font-size: 13.5px; line-height: 1.55; }
+    .modal code {
+      font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+      background: #f1f5f9; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); color: #0f172a;
+    }
+    .guide-tabs {
+      display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 12px;
+    }
+    .guide-tabs a {
+      text-decoration: none; font-size: 12px; font-weight: 700; color: var(--teal-dark);
+      padding: 6px 10px; border-radius: 999px; background: var(--teal-soft); border: 1px solid #99f6e4;
+    }
+    .logic-flow {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      margin: 10px 0 14px; font-size: 11px;
+    }
+    .logic-flow span {
+      padding: 5px 9px; border-radius: 999px; background: #f8fafc;
+      border: 1px solid var(--line); color: var(--muted); font-weight: 600;
+    }
+    .logic-flow .arrow { border: none; background: transparent; padding: 0; color: var(--teal); }
+    .api-card {
+      border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+      background: #f8fafc; margin-bottom: 12px;
+    }
+    .api-card h3 {
+      margin: 0 0 8px; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .api-pill {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .api-pill.dm { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+    .api-pill.ro { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; }
+    .api-pill.maps { background: #d1fae5; color: #047857; border: 1px solid #6ee7b7; }
+    .api-pill.app { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+    .api-card p, .api-card li { margin: 0 0 8px; font-size: 13px; }
+    .api-card ul, .api-card ol { margin: 0 0 8px; padding-left: 18px; }
+    .api-card .when {
+      margin: 8px 0 0; padding: 8px 10px; border-radius: 8px;
+      background: #fff; border: 1px solid var(--line);
+      color: var(--muted); font-size: 12px; line-height: 1.45;
+    }
+    .api-card .when strong { color: var(--ink); }
+    .logic-table {
+      width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 12.5px;
+    }
+    .logic-table th, .logic-table td {
+      text-align: left; padding: 8px 9px; border-bottom: 1px solid var(--line);
+      vertical-align: top; color: #334155;
+    }
+    .logic-table th { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .logic-note { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .guide-step-num {
+      display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--teal); color: #fff; font-size: 11px; font-weight: 800; margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div>
+        <p class="brand-title">Scheduling Demo App</p>
+        <p class="brand-sub">Address → nearest service center + technician</p>
+      </div>
+    </div>
+    <div class="top-controls">
+      <label class="field">API key
+        <input type="password" id="apiKey" placeholder="YOUR_API_KEY" autocomplete="off" />
+      </label>
+      <button type="button" id="btnLoad">Start desk</button>
+      <button type="button" class="secondary" id="btnReset">Reset day</button>
+      <button type="button" class="ghost" id="btnLogic">Guide</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="status" id="statusBar">Enter your API key and click <strong>Start desk</strong>. No service center is selected yet — search a customer address to assign the nearest center and technician.</p>
+
+    <div class="steps" aria-label="Booking steps">
+      <div class="step-pill" id="step1"><span class="n">1</span> Customer</div>
+      <div class="step-pill" id="step2"><span class="n">2</span> Select day</div>
+      <div class="step-pill" id="step3"><span class="n">3</span> Choose slot</div>
+      <div class="step-pill" id="step4"><span class="n">4</span> Confirm</div>
+    </div>
+
+    <article class="card intake-card">
+      <h2>1 · Incoming appointment</h2>
+      <p class="hint">Capture who needs service, then search their address. Service center and technician are assigned only after the location is resolved — nothing is pre-selected.</p>
+      <div class="intake-form">
+        <label class="field">Customer name
+          <input id="custName" type="text" placeholder="e.g. Jordan Hale" />
+        </label>
+        <label class="field">Phone (optional)
+          <input id="custPhone" type="tel" placeholder="+1 (555) 010-1234" />
+        </label>
+        <label class="field">Service type
+          <select id="serviceType">
+            <option value="install">Installation (30 min)</option>
+            <option value="repair">Repair visit (30 min)</option>
+            <option value="inspect">Inspection (30 min)</option>
+          </select>
+        </label>
+        <div class="addr-field">
+          <div class="addr-row">
+            <label class="field">Service address
+              <input id="addrInput" type="search" placeholder="Start typing an address…" autocomplete="off" />
+            </label>
+            <button type="button" id="btnGeocode" class="secondary" title="Geocode exact address">Locate</button>
+          </div>
+          <ul class="addr-suggest" id="addrSuggest" hidden role="listbox" aria-label="Address suggestions"></ul>
+          <div class="loc-status" id="locStatus">Type a US address. After locate, the desk picks the nearest service center and technician.</div>
+        </div>
+      </div>
+    </article>
+
+    <section class="booking-grid">
+      <article class="card">
+        <h2>2 · Choose a day</h2>
+        <p class="hint">Pick the calendar day for this booking. Slots are computed only after a day is selected.</p>
+        <div class="calendar-head">
+          <h3 id="calTitle">—</h3>
+          <div class="cal-nav">
+            <button type="button" class="secondary" id="calPrev" aria-label="Previous month">‹</button>
+            <button type="button" class="secondary" id="calNext" aria-label="Next month">›</button>
+          </div>
+        </div>
+        <div class="cal-weekdays">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="selected-day-label" id="selectedDayLabel">No day selected</div>
+      </article>
+
+      <article class="card">
+        <h2>3 · Available times <span id="slotBadge" hidden style="color:var(--ok);font-size:11px;font-weight:800">NB ranked</span></h2>
+        <p class="hint" id="slotHint">Select a day to see NextBillion-recommended slots for that date.</p>
+        <div class="slots" id="slotGrid" aria-live="polite">
+          <div class="empty-slots">Waiting for day selection…</div>
+        </div>
+      </article>
+
+      <article class="card confirm-card">
+        <h2>4 · Confirm booking</h2>
+        <div class="confirm-empty" id="confirmEmpty">
+          <p>Select a time slot to confirm your booking.</p>
+        </div>
+        <div class="confirm" id="confirmBox" hidden aria-hidden="true">
+          <dl id="confirmDl">
+            <dt>Customer</dt><dd id="cCustomer">—</dd>
+            <dt>Service center</dt><dd id="cCenter">—</dd>
+            <dt>Day</dt><dd id="cDay">—</dd>
+            <dt>Time</dt><dd id="cTime">—</dd>
+            <dt>Technician</dt><dd id="cTech">—</dd>
+            <dt>Location</dt><dd id="cLoc">—</dd>
+          </dl>
+          <div class="actions">
+            <button type="button" id="btnBook" disabled>Book</button>
+            <button type="button" class="secondary" id="btnClearSlot">Clear</button>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="lower">
+      <article class="card">
+        <h2>Assigned service center &amp; technician</h2>
+        <p class="hint">Resolved from the customer address — center first, then nearest tech on that center’s roster. Waiting times use Distance Matrix.</p>
+        <div class="tech-board" id="techList"></div>
+        <div class="log" id="log">Ready.</div>
+      </article>
+      <article class="card">
+        <h2>Route map</h2>
+        <p class="hint">Optimized technician routes for the selected day.</p>
+        <div class="map-wrap">
+          <div id="map" aria-label="Technician route map"></div>
+          <div id="mapPlaceholder">Start the desk to load the map.</div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div class="overlay" id="logicOverlay" role="dialog" aria-modal="true" aria-labelledby="guideTitle" aria-hidden="true">
+    <div class="modal">
+      <header class="guide-head">
+        <div>
+          <h2 id="guideTitle">US Appointment Desk — Guide</h2>
+          <p class="sub">
+            How to book with this calendar-first operator UI, which NextBillion.ai APIs power each step,
+            and how travel time + schedules become smart slot recommendations.
+          </p>
+        </div>
+        <button type="button" class="secondary" id="btnLogicClose">Close</button>
+      </header>
+
+      <nav class="guide-tabs" aria-label="Guide sections">
+        <a href="#guide-howto">How to use</a>
+        <a href="#guide-flow">Workflow</a>
+        <a href="#guide-apis">APIs used</a>
+        <a href="#guide-logic">App logic</a>
+        <a href="#guide-scoring">Scoring</a>
+      </nav>
+
+      <div class="logic-flow" aria-label="Demo workflow" id="guide-flow">
+        <span>1. Start desk</span><span class="arrow">→</span>
+        <span>2. Address search</span><span class="arrow">→</span>
+        <span>3. Service center + tech</span><span class="arrow">→</span>
+        <span>4. Pick day</span><span class="arrow">→</span>
+        <span>5. NB recommended slots</span><span class="arrow">→</span>
+        <span>6. Book &amp; re-optimize</span>
+      </div>
+
+      <div class="api-card" id="guide-howto">
+        <h3><span class="api-pill app">How to use</span> Step-by-step operator guide</h3>
+        <ol>
+          <li>
+            <span class="guide-step-num">1</span>
+            Enter your <strong>NextBillion API key</strong> in the top bar (stored in this browser session only).
+          </li>
+          <li>
+            <span class="guide-step-num">2</span>
+            Click <strong>Start desk</strong> — no city or service center is pre-selected. This unlocks the booking calendar and a US overview map.
+          </li>
+          <li>
+            <span class="guide-step-num">3</span>
+            Fill <strong>Incoming appointment</strong>: customer name, optional phone, service type, then search a <strong>service address</strong>
+            (Autocomplete / Geocode). Only then does the desk pick the <strong>nearest service center</strong> and <strong>nearest technician</strong> on that center’s roster.
+          </li>
+          <li>
+            <span class="guide-step-num">4</span>
+            Under <strong>Choose a day</strong>, click an available calendar date (teal-bordered days). Days outside the booking window or Sundays are disabled.
+          </li>
+          <li>
+            <span class="guide-step-num">5</span>
+            Wait briefly while the desk scores feasible hourly slots for the <strong>assigned technician</strong> with Distance Matrix and refreshes their route on the map.
+          </li>
+          <li>
+            <span class="guide-step-num">6</span>
+            In <strong>Available times</strong>, pick an NB-ranked slot (Best / Recommended / Available). Review the confirm panel, then click <strong>Book</strong>.
+          </li>
+          <li>
+            <span class="guide-step-num">7</span>
+            Check the <strong>Assigned service center &amp; technician</strong> board and <strong>Route map</strong>. Book another customer or day as needed.
+          </li>
+          <li>
+            <span class="guide-step-num">8</span>
+            Use <strong>Reset day</strong> to restore that day’s seed schedules and re-run road optimization.
+          </li>
+        </ol>
+        <div class="when">
+          <strong>Tip:</strong> Calendar days unlock after <em>Start desk</em>. Service center + technician appear only after you locate an address.
+          Slots appear after you select a day <em>and</em> enter a customer name.
+        </div>
+      </div>
+
+      <div class="api-card" id="guide-apis">
+        <h3><span class="api-pill app">APIs at a glance</span></h3>
+        <table class="logic-table">
+          <thead>
+            <tr>
+              <th>API</th>
+              <th>Job in this demo</th>
+              <th>Triggered by</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="api-pill maps">Autocomplete</span></td>
+              <td>Suggest addresses as the operator types in the service address bar.</td>
+              <td>Address keystrokes (debounced)</td>
+            </tr>
+            <tr>
+              <td><span class="api-pill maps">Geocode</span></td>
+              <td>Resolve a full address query to lat/lng and pin the customer on the map.</td>
+              <td>Locate button / suggestion select</td>
+            </tr>
+            <tr>
+              <td><span class="api-pill dm">Distance Matrix</span></td>
+              <td>Nearest-tech travel from depots; slot feasibility, ranking, and waiting-time estimates.</td>
+              <td>After locate; day select; slot recommend; after book</td>
+            </tr>
+            <tr>
+              <td><span class="api-pill ro">Route Optimization</span></td>
+              <td>Build / rebuild the assigned technician’s day plan and return road geometry.</td>
+              <td>Day select; Book; Reset day</td>
+            </tr>
+            <tr>
+              <td><span class="api-pill maps">Maps SDK</span></td>
+              <td>Show map, customer pin, assigned depot/stops, and optimized route polylines.</td>
+              <td>Start desk; after locate / optimize / book</td>
+            </tr>
+            <tr>
+              <td><span class="api-pill app">App rules</span></td>
+              <td>30-min service, hourly slots, calendar window, nearest-tech assignment, insertion scoring, multi-day state.</td>
+              <td>Local browser logic between API calls</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="api-card" id="guide-logic">
+        <h3><span class="api-pill app">App logic</span> What this desk is simulating</h3>
+        <p>
+          This is a <strong>field-service appointment desk</strong>: an operator captures the customer, picks a calendar day,
+          and the system recommends slots that fit a technician’s day with the least extra driving.
+          Each visit takes <strong>30 minutes</strong> of on-site service. Booking slots are offered on the hour
+          (09:00–10:00 … 17:00–18:00). Technicians work <strong>9:00 AM–6:00 PM</strong>.
+        </p>
+        <p>
+          Unlike the map-first demo (fixed “Day 1”), this UI keeps <strong>separate schedules per calendar day</strong>.
+          Each of the <strong>15 US cities</strong> has three technicians with depots and seed appointments in that metro.
+          The operator searches a real address (Autocomplete / Geocode) with <strong>no city pre-selected</strong>; the desk then picks the
+          <strong>nearest service center</strong> and the <strong>nearest technician</strong> on that center’s roster, and ranks slots against that tech’s day.
+        </p>
+      </div>
+
+      <div class="api-card">
+        <h3><span class="api-pill dm">Distance Matrix API</span> Road travel times between points</h3>
+        <p>
+          <strong>Endpoint:</strong> <code>GET /distancematrix/json</code> (driving mode).
+          Answers: <em>“How long does it take to drive from A to B on the road network?”</em>
+        </p>
+        <p><strong>Where it is used:</strong></p>
+        <ul>
+          <li>
+            <strong>Smart slot recommendation</strong> — Checks whether a technician can leave the previous job (or depot),
+            travel to the new customer, arrive by the slot start, finish 30 minutes of service, and still reach the next appointment.
+          </li>
+          <li>
+            <strong>Ranking</strong> — Estimates <em>extra travel</em> from inserting the stop (insertion cost). Lower extra travel ranks higher.
+          </li>
+          <li>
+            <strong>Waiting time on the technician board</strong> —
+            <em>waiting = scheduled start − (previous finish + travel)</em>.
+          </li>
+        </ul>
+        <div class="when">
+          <strong>When you see it run:</strong> after you select a day (with a customer name entered), or when refreshing waiting times after book/reset.
+          If Distance Matrix is unavailable, the demo falls back to an approximate travel estimate so the UI still works.
+        </div>
+      </div>
+
+      <div class="api-card">
+        <h3><span class="api-pill ro">Route Optimization API</span> Assign &amp; optimize the technician’s day</h3>
+        <p>
+          <strong>Endpoints:</strong> <code>POST /optimization/v2</code>, then
+          <code>GET /optimization/v2/result?id=…</code> until routes are ready.
+        </p>
+        <p>
+          Builds an optimized day plan using jobs, time windows, service duration, vehicle shift hours, and a travel-time objective.
+          Requests road geometry (<code>with_geometry: true</code>) so routes follow actual road segments on the map.
+        </p>
+        <p><strong>Where it is used:</strong></p>
+        <ul>
+          <li>
+            <strong>Day select</strong> — Every technician with appointments that day is optimized so seed (and prior) routes show as road polylines, not straight lines.
+          </li>
+          <li>
+            <strong>After booking</strong> — The new appointment is added to the chosen technician; Route Optimization re-runs for that technician only.
+          </li>
+          <li>
+            <strong>Reset day</strong> — Seed schedules are restored and all technicians are optimized again.
+          </li>
+        </ul>
+        <p>
+          Key settings: 30-minute <code>service</code>, preferred hour as <code>time_windows</code>, shift <code>time_window</code> 9:00–18:00,
+          <code>objective.travel_cost: "duration"</code>.
+        </p>
+        <div class="when">
+          <strong>When you see it run:</strong> status shows “Optimizing all technician routes…” on day select / reset, and “Booking &amp; re-optimizing…” on book.
+        </div>
+      </div>
+
+      <div class="api-card">
+        <h3><span class="api-pill maps">Maps SDK</span> Visualization only</h3>
+        <p>
+          The NextBillion Web Maps SDK renders the city map, depot markers, numbered stops, and optimized route lines for the
+          <strong>selected calendar day</strong>.
+        </p>
+        <div class="when">
+          <strong>Important:</strong> Maps are for display. Slot ranking and route planning come from Distance Matrix + Route Optimization
+          (plus local scheduling rules), not from the map itself.
+        </div>
+      </div>
+
+      <div class="api-card">
+        <h3><span class="api-pill app">Step-by-step process</span> (system view)</h3>
+        <table class="logic-table">
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>What happens</th>
+              <th>API / logic</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1. Start desk</td>
+              <td>Set booking window, unlock calendar, load locations &amp; map.</td>
+              <td>App data + Maps SDK</td>
+            </tr>
+            <tr>
+              <td>2. Capture customer</td>
+              <td>Name, location, service type for the incoming appointment.</td>
+              <td>App UI</td>
+            </tr>
+            <tr>
+              <td>3. Select day</td>
+              <td>Load that day’s technicians and seed appointments.</td>
+              <td>App multi-day state</td>
+            </tr>
+            <tr>
+              <td>4. Seed / day optimize</td>
+              <td>Road geometry for every tech with jobs on that day.</td>
+              <td>Route Optimization</td>
+            </tr>
+            <tr>
+              <td>5. Waiting times</td>
+              <td>Estimate arrival and idle time before each visit.</td>
+              <td>Distance Matrix + app formula</td>
+            </tr>
+            <tr>
+              <td>6. Recommend slots</td>
+              <td>Test each hour × each technician; show top ranked slots.</td>
+              <td>Distance Matrix + app scoring</td>
+            </tr>
+            <tr>
+              <td>7. Book</td>
+              <td>Assign appointment to the chosen technician and hour.</td>
+              <td>App logic</td>
+            </tr>
+            <tr>
+              <td>8. Re-optimize</td>
+              <td>Rebuild that technician’s day; update map &amp; board.</td>
+              <td>Route Optimization + Maps + DM</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="api-card" id="guide-scoring">
+        <h3><span class="api-pill app">Recommendation scoring</span> (simple view)</h3>
+        <p>For a candidate technician and time slot, the demo:</p>
+        <ul>
+          <li>Rejects the slot if it is already booked or outside the 9:00–6:00 shift.</li>
+          <li>Uses Distance Matrix for travel from the previous stop (or depot) to the customer, and from the customer to the next stop.</li>
+          <li>Checks arrival before the slot start and that the next appointment is still reachable after 30 minutes of service.</li>
+          <li>
+            Scores mainly by <strong>extra travel time</strong> (insertion cost):
+            <em>travel(previous → new) + travel(new → next) − travel(previous → next)</em>.
+            Lower extra travel ranks higher.
+          </li>
+          <li>Applies a small preference for less busy technicians and for filling natural gaps in the day.</li>
+        </ul>
+        <p>
+          The best technician for each hour is kept, then the top options are shown as NB recommended slots —
+          not every empty hour on the calendar.
+        </p>
+        <div class="when">
+          <strong>Waiting time on technician cards:</strong>
+          <em>waiting = max(0, appointment start − (previous finish + travel to this stop))</em>.
+        </div>
+      </div>
+
+      <p class="logic-note">
+        Docs:
+        <a href="https://docs.nextbillion.ai/routing/distance-matrix-api" target="_blank" rel="noopener">Distance Matrix API</a>
+        ·
+        <a href="https://docs.nextbillion.ai/optimization/route-optimization-api" target="_blank" rel="noopener">Route Optimization API</a>
+        ·
+        <a href="https://docs.nextbillion.ai/maps/web-maps-sdk-v2/get-started" target="_blank" rel="noopener">Web Maps SDK</a>
+        <br />
+        Related demo: <a href="./ai-appointment-scheduler-demo.html">AI Appointment Scheduler (map-first)</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="https://maps-gl.nextbillion.io/maps/v2/api/js"></script>
+  <script>
+(function () {
+  const BASE = "https://api.nextbillion.io";
+  const SERVICE_SEC = 30 * 60;
+  const SLOT_LEN_SEC = 60 * 60;
+  const WORK_START_H = 9;
+  const WORK_END_H = 18;
+  const SLOT_HOURS = [9, 10, 11, 12, 13, 14, 15, 16, 17];
+  const TECH_COLORS = ["#0284c7", "#7c3aed", "#059669"];
+  const BOOK_WINDOW_DAYS = 21;
+
+  const CITIES = {
+    newyork: {
+      name: "New York, NY",
+      center: [-73.9857, 40.7484], zoom: 11.4, utcOffsetHours: -4,
+      customers: [
+        { id: "c1", name: "Upper East Side", lat: 40.7736, lng: -73.9566 },
+        { id: "c2", name: "Chelsea", lat: 40.7465, lng: -74.0014 },
+        { id: "c3", name: "Williamsburg", lat: 40.7081, lng: -73.9571 },
+        { id: "c4", name: "Upper West Side", lat: 40.7870, lng: -73.9754 },
+        { id: "c5", name: "East Village", lat: 40.7265, lng: -73.9815 },
+        { id: "c6", name: "Harlem", lat: 40.8116, lng: -73.9465 },
+        { id: "c7", name: "Astoria", lat: 40.7644, lng: -73.9235 },
+        { id: "c8", name: "Park Slope", lat: 40.6710, lng: -73.9778 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Michael Russo", start: { lat: 40.7580, lng: -73.9855 }, color: TECH_COLORS[0], seed: [{ customerId: "c2", hour: 9 }, { customerId: "c5", hour: 14 }] },
+        { id: "tech-b", name: "Aisha Washington", start: { lat: 40.7800, lng: -73.9600 }, color: TECH_COLORS[1], seed: [{ customerId: "c1", hour: 11 }, { customerId: "c4", hour: 15 }] },
+        { id: "tech-c", name: "Carlos Rivera", start: { lat: 40.7200, lng: -73.9500 }, color: TECH_COLORS[2], seed: [{ customerId: "c3", hour: 10 }] },
+      ],
+    },
+    losangeles: {
+      name: "Los Angeles, CA",
+      center: [-118.2437, 34.0522], zoom: 10.6, utcOffsetHours: -7,
+      customers: [
+        { id: "c1", name: "Downtown LA", lat: 34.0407, lng: -118.2468 },
+        { id: "c2", name: "Hollywood", lat: 34.0928, lng: -118.3287 },
+        { id: "c3", name: "Santa Monica", lat: 34.0195, lng: -118.4912 },
+        { id: "c4", name: "Pasadena", lat: 34.1478, lng: -118.1445 },
+        { id: "c5", name: "Culver City", lat: 34.0211, lng: -118.3965 },
+        { id: "c6", name: "Koreatown", lat: 34.0610, lng: -118.3020 },
+        { id: "c7", name: "Glendale", lat: 34.1425, lng: -118.2551 },
+        { id: "c8", name: "Long Beach", lat: 33.7701, lng: -118.1937 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Maya Chen", start: { lat: 34.0522, lng: -118.2437 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c6", hour: 14 }] },
+        { id: "tech-b", name: "Diego Alvarez", start: { lat: 34.0194, lng: -118.4912 }, color: TECH_COLORS[1], seed: [{ customerId: "c3", hour: 10 }, { customerId: "c5", hour: 15 }] },
+        { id: "tech-c", name: "Priya Patel", start: { lat: 34.1478, lng: -118.1445 }, color: TECH_COLORS[2], seed: [{ customerId: "c4", hour: 11 }] },
+      ],
+    },
+    chicago: {
+      name: "Chicago, IL",
+      center: [-87.6298, 41.8781], zoom: 11.1, utcOffsetHours: -5,
+      customers: [
+        { id: "c1", name: "The Loop", lat: 41.8781, lng: -87.6298 },
+        { id: "c2", name: "Lincoln Park", lat: 41.9214, lng: -87.6513 },
+        { id: "c3", name: "Wicker Park", lat: 41.9088, lng: -87.6796 },
+        { id: "c4", name: "Hyde Park", lat: 41.7943, lng: -87.5907 },
+        { id: "c5", name: "Logan Square", lat: 41.9230, lng: -87.7090 },
+        { id: "c6", name: "South Loop", lat: 41.8617, lng: -87.6260 },
+        { id: "c7", name: "Lakeview", lat: 41.9431, lng: -87.6588 },
+        { id: "c8", name: "Pilsen", lat: 41.8560, lng: -87.6564 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "James Okonkwo", start: { lat: 41.8827, lng: -87.6233 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c2", hour: 14 }] },
+        { id: "tech-b", name: "Elena Rossi", start: { lat: 41.9100, lng: -87.6770 }, color: TECH_COLORS[1], seed: [{ customerId: "c3", hour: 10 }, { customerId: "c5", hour: 15 }] },
+        { id: "tech-c", name: "Marcus Bennett", start: { lat: 41.8020, lng: -87.5900 }, color: TECH_COLORS[2], seed: [{ customerId: "c4", hour: 11 }] },
+      ],
+    },
+    houston: {
+      name: "Houston, TX",
+      center: [-95.3698, 29.7604], zoom: 10.7, utcOffsetHours: -5,
+      customers: [
+        { id: "c1", name: "Downtown", lat: 29.7604, lng: -95.3698 },
+        { id: "c2", name: "Montrose", lat: 29.7420, lng: -95.3910 },
+        { id: "c3", name: "The Heights", lat: 29.7989, lng: -95.3982 },
+        { id: "c4", name: "Medical Center", lat: 29.7079, lng: -95.4010 },
+        { id: "c5", name: "Galleria", lat: 29.7390, lng: -95.4630 },
+        { id: "c6", name: "Midtown", lat: 29.7370, lng: -95.3770 },
+        { id: "c7", name: "Energy Corridor", lat: 29.7800, lng: -95.6340 },
+        { id: "c8", name: "Pearland", lat: 29.5636, lng: -95.2860 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Luis Navarro", start: { lat: 29.7604, lng: -95.3698 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c2", hour: 14 }] },
+        { id: "tech-b", name: "Keisha Brooks", start: { lat: 29.7370, lng: -95.4630 }, color: TECH_COLORS[1], seed: [{ customerId: "c5", hour: 10 }, { customerId: "c4", hour: 15 }] },
+        { id: "tech-c", name: "Andrew Nguyen", start: { lat: 29.7989, lng: -95.3982 }, color: TECH_COLORS[2], seed: [{ customerId: "c3", hour: 11 }] },
+      ],
+    },
+    phoenix: {
+      name: "Phoenix, AZ",
+      center: [-112.0740, 33.4484], zoom: 10.6, utcOffsetHours: -7,
+      customers: [
+        { id: "c1", name: "Downtown Phoenix", lat: 33.4484, lng: -112.0740 },
+        { id: "c2", name: "Scottsdale", lat: 33.4942, lng: -111.9261 },
+        { id: "c3", name: "Tempe", lat: 33.4255, lng: -111.9400 },
+        { id: "c4", name: "Mesa", lat: 33.4152, lng: -111.8315 },
+        { id: "c5", name: "Glendale", lat: 33.5387, lng: -112.1860 },
+        { id: "c6", name: "Chandler", lat: 33.3062, lng: -111.8413 },
+        { id: "c7", name: "Arcadia", lat: 33.5020, lng: -111.9960 },
+        { id: "c8", name: "Ahwatukee", lat: 33.3420, lng: -112.0000 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Samira Haddad", start: { lat: 33.4484, lng: -112.0740 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c7", hour: 14 }] },
+        { id: "tech-b", name: "Tyler Grant", start: { lat: 33.4942, lng: -111.9261 }, color: TECH_COLORS[1], seed: [{ customerId: "c2", hour: 10 }, { customerId: "c3", hour: 15 }] },
+        { id: "tech-c", name: "Rosa Delgado", start: { lat: 33.4152, lng: -111.8315 }, color: TECH_COLORS[2], seed: [{ customerId: "c4", hour: 11 }] },
+      ],
+    },
+    philadelphia: {
+      name: "Philadelphia, PA",
+      center: [-75.1652, 39.9526], zoom: 11.3, utcOffsetHours: -4,
+      customers: [
+        { id: "c1", name: "Center City", lat: 39.9526, lng: -75.1652 },
+        { id: "c2", name: "Fishtown", lat: 39.9712, lng: -75.1290 },
+        { id: "c3", name: "University City", lat: 39.9556, lng: -75.1899 },
+        { id: "c4", name: "South Philadelphia", lat: 39.9210, lng: -75.1630 },
+        { id: "c5", name: "Northern Liberties", lat: 39.9640, lng: -75.1410 },
+        { id: "c6", name: "Chestnut Hill", lat: 40.0750, lng: -75.2090 },
+        { id: "c7", name: "Manayunk", lat: 40.0250, lng: -75.2240 },
+        { id: "c8", name: "Queen Village", lat: 39.9380, lng: -75.1510 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Ben Walsh", start: { lat: 39.9526, lng: -75.1652 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c5", hour: 14 }] },
+        { id: "tech-b", name: "Fatima Khan", start: { lat: 39.9556, lng: -75.1899 }, color: TECH_COLORS[1], seed: [{ customerId: "c3", hour: 10 }, { customerId: "c4", hour: 15 }] },
+        { id: "tech-c", name: "Chris Novak", start: { lat: 39.9712, lng: -75.1290 }, color: TECH_COLORS[2], seed: [{ customerId: "c2", hour: 11 }] },
+      ],
+    },
+    sanantonio: {
+      name: "San Antonio, TX",
+      center: [-98.4936, 29.4241], zoom: 10.9, utcOffsetHours: -5,
+      customers: [
+        { id: "c1", name: "Downtown", lat: 29.4241, lng: -98.4936 },
+        { id: "c2", name: "Alamo Heights", lat: 29.4810, lng: -98.4660 },
+        { id: "c3", name: "The Pearl", lat: 29.4430, lng: -98.4800 },
+        { id: "c4", name: "Southtown", lat: 29.4110, lng: -98.4950 },
+        { id: "c5", name: "Medical Center", lat: 29.5080, lng: -98.5780 },
+        { id: "c6", name: "Stone Oak", lat: 29.6580, lng: -98.4780 },
+        { id: "c7", name: "Leon Valley", lat: 29.4950, lng: -98.6180 },
+        { id: "c8", name: "Brooks", lat: 29.3420, lng: -98.4480 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Elena Vargas", start: { lat: 29.4241, lng: -98.4936 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c3", hour: 14 }] },
+        { id: "tech-b", name: "Jordan Miles", start: { lat: 29.5080, lng: -98.5780 }, color: TECH_COLORS[1], seed: [{ customerId: "c5", hour: 10 }, { customerId: "c2", hour: 15 }] },
+        { id: "tech-c", name: "Ana Ruiz", start: { lat: 29.4430, lng: -98.4800 }, color: TECH_COLORS[2], seed: [{ customerId: "c4", hour: 11 }] },
+      ],
+    },
+    sandiego: {
+      name: "San Diego, CA",
+      center: [-117.1611, 32.7157], zoom: 10.9, utcOffsetHours: -7,
+      customers: [
+        { id: "c1", name: "Downtown", lat: 32.7157, lng: -117.1611 },
+        { id: "c2", name: "La Jolla", lat: 32.8328, lng: -117.2713 },
+        { id: "c3", name: "North Park", lat: 32.7410, lng: -117.1300 },
+        { id: "c4", name: "Pacific Beach", lat: 32.7997, lng: -117.2431 },
+        { id: "c5", name: "Mission Valley", lat: 32.7670, lng: -117.1480 },
+        { id: "c6", name: "Hillcrest", lat: 32.7480, lng: -117.1610 },
+        { id: "c7", name: "Chula Vista", lat: 32.6401, lng: -117.0842 },
+        { id: "c8", name: "Ocean Beach", lat: 32.7490, lng: -117.2470 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Noah Kim", start: { lat: 32.7157, lng: -117.1611 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c6", hour: 14 }] },
+        { id: "tech-b", name: "Camila Ortiz", start: { lat: 32.8328, lng: -117.2713 }, color: TECH_COLORS[1], seed: [{ customerId: "c2", hour: 10 }, { customerId: "c4", hour: 15 }] },
+        { id: "tech-c", name: "Brett Hansen", start: { lat: 32.7410, lng: -117.1300 }, color: TECH_COLORS[2], seed: [{ customerId: "c3", hour: 11 }] },
+      ],
+    },
+    dallas: {
+      name: "Dallas, TX",
+      center: [-96.7970, 32.7767], zoom: 10.8, utcOffsetHours: -5,
+      customers: [
+        { id: "c1", name: "Downtown Dallas", lat: 32.7767, lng: -96.7970 },
+        { id: "c2", name: "Uptown", lat: 32.8010, lng: -96.8010 },
+        { id: "c3", name: "Deep Ellum", lat: 32.7840, lng: -96.7810 },
+        { id: "c4", name: "Oak Lawn", lat: 32.8070, lng: -96.8070 },
+        { id: "c5", name: "Bishop Arts", lat: 32.7480, lng: -96.8380 },
+        { id: "c6", name: "Plano", lat: 33.0198, lng: -96.6989 },
+        { id: "c7", name: "Irving", lat: 32.8140, lng: -96.9480 },
+        { id: "c8", name: "Richardson", lat: 32.9483, lng: -96.7299 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Olivia Carter", start: { lat: 32.7767, lng: -96.7970 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c3", hour: 14 }] },
+        { id: "tech-b", name: "DeShawn Cole", start: { lat: 32.8010, lng: -96.8010 }, color: TECH_COLORS[1], seed: [{ customerId: "c2", hour: 10 }, { customerId: "c4", hour: 15 }] },
+        { id: "tech-c", name: "Mei Lin", start: { lat: 32.9483, lng: -96.7299 }, color: TECH_COLORS[2], seed: [{ customerId: "c8", hour: 11 }] },
+      ],
+    },
+    jacksonville: {
+      name: "Jacksonville, FL",
+      center: [-81.6557, 30.3322], zoom: 10.6, utcOffsetHours: -4,
+      customers: [
+        { id: "c1", name: "Downtown", lat: 30.3322, lng: -81.6557 },
+        { id: "c2", name: "Riverside", lat: 30.3150, lng: -81.6900 },
+        { id: "c3", name: "San Marco", lat: 30.3090, lng: -81.6540 },
+        { id: "c4", name: "Jacksonville Beach", lat: 30.2947, lng: -81.3931 },
+        { id: "c5", name: "Arlington", lat: 30.3270, lng: -81.5980 },
+        { id: "c6", name: "Southside", lat: 30.2460, lng: -81.5500 },
+        { id: "c7", name: "Mandarin", lat: 30.1600, lng: -81.6600 },
+        { id: "c8", name: "Ortega", lat: 30.2780, lng: -81.7060 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Amber Scott", start: { lat: 30.3322, lng: -81.6557 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c3", hour: 14 }] },
+        { id: "tech-b", name: "Rafael Perez", start: { lat: 30.3150, lng: -81.6900 }, color: TECH_COLORS[1], seed: [{ customerId: "c2", hour: 10 }, { customerId: "c8", hour: 15 }] },
+        { id: "tech-c", name: "Todd Williams", start: { lat: 30.2947, lng: -81.3931 }, color: TECH_COLORS[2], seed: [{ customerId: "c4", hour: 11 }] },
+      ],
+    },
+    austin: {
+      name: "Austin, TX",
+      center: [-97.7431, 30.2672], zoom: 11.0, utcOffsetHours: -5,
+      customers: [
+        { id: "c1", name: "Downtown Austin", lat: 30.2672, lng: -97.7431 },
+        { id: "c2", name: "South Congress", lat: 30.2490, lng: -97.7500 },
+        { id: "c3", name: "East Austin", lat: 30.2620, lng: -97.7200 },
+        { id: "c4", name: "The Domain", lat: 30.4020, lng: -97.7260 },
+        { id: "c5", name: "Zilker", lat: 30.2670, lng: -97.7730 },
+        { id: "c6", name: "Mueller", lat: 30.2980, lng: -97.7030 },
+        { id: "c7", name: "Barton Hills", lat: 30.2520, lng: -97.7840 },
+        { id: "c8", name: "Round Rock", lat: 30.5083, lng: -97.6789 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Harper Quinn", start: { lat: 30.2672, lng: -97.7431 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c2", hour: 14 }] },
+        { id: "tech-b", name: "Jamal Reed", start: { lat: 30.2620, lng: -97.7200 }, color: TECH_COLORS[1], seed: [{ customerId: "c3", hour: 10 }, { customerId: "c6", hour: 15 }] },
+        { id: "tech-c", name: "Sofia Berg", start: { lat: 30.4020, lng: -97.7260 }, color: TECH_COLORS[2], seed: [{ customerId: "c4", hour: 11 }] },
+      ],
+    },
+    fortworth: {
+      name: "Fort Worth, TX",
+      center: [-97.3308, 32.7555], zoom: 10.8, utcOffsetHours: -5,
+      customers: [
+        { id: "c1", name: "Downtown Fort Worth", lat: 32.7555, lng: -97.3308 },
+        { id: "c2", name: "Cultural District", lat: 32.7480, lng: -97.3680 },
+        { id: "c3", name: "Near Southside", lat: 32.7350, lng: -97.3280 },
+        { id: "c4", name: "TCU / Tanglewood", lat: 32.7090, lng: -97.3630 },
+        { id: "c5", name: "Stockyards", lat: 32.7890, lng: -97.3480 },
+        { id: "c6", name: "West 7th", lat: 32.7510, lng: -97.3580 },
+        { id: "c7", name: "Alliance", lat: 32.9800, lng: -97.3100 },
+        { id: "c8", name: "Arlington", lat: 32.7357, lng: -97.1081 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Cody Ellis", start: { lat: 32.7555, lng: -97.3308 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c6", hour: 14 }] },
+        { id: "tech-b", name: "Nina Patel", start: { lat: 32.7480, lng: -97.3680 }, color: TECH_COLORS[1], seed: [{ customerId: "c2", hour: 10 }, { customerId: "c5", hour: 15 }] },
+        { id: "tech-c", name: "Ray Thompson", start: { lat: 32.7357, lng: -97.1081 }, color: TECH_COLORS[2], seed: [{ customerId: "c8", hour: 11 }] },
+      ],
+    },
+    columbus: {
+      name: "Columbus, OH",
+      center: [-82.9988, 39.9612], zoom: 11.1, utcOffsetHours: -4,
+      customers: [
+        { id: "c1", name: "Downtown Columbus", lat: 39.9612, lng: -82.9988 },
+        { id: "c2", name: "Short North", lat: 39.9770, lng: -83.0030 },
+        { id: "c3", name: "German Village", lat: 39.9460, lng: -82.9930 },
+        { id: "c4", name: "Clintonville", lat: 40.0420, lng: -83.0010 },
+        { id: "c5", name: "Grandview", lat: 39.9800, lng: -83.0410 },
+        { id: "c6", name: "Arena District", lat: 39.9690, lng: -83.0070 },
+        { id: "c7", name: "Dublin", lat: 40.0992, lng: -83.1141 },
+        { id: "c8", name: "Westerville", lat: 40.1262, lng: -82.9291 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Grace Miller", start: { lat: 39.9612, lng: -82.9988 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c2", hour: 14 }] },
+        { id: "tech-b", name: "Malik Johnson", start: { lat: 39.9460, lng: -82.9930 }, color: TECH_COLORS[1], seed: [{ customerId: "c3", hour: 10 }, { customerId: "c5", hour: 15 }] },
+        { id: "tech-c", name: "Hannah Cho", start: { lat: 40.0992, lng: -83.1141 }, color: TECH_COLORS[2], seed: [{ customerId: "c7", hour: 11 }] },
+      ],
+    },
+    charlotte: {
+      name: "Charlotte, NC",
+      center: [-80.8431, 35.2271], zoom: 10.9, utcOffsetHours: -4,
+      customers: [
+        { id: "c1", name: "Uptown", lat: 35.2271, lng: -80.8431 },
+        { id: "c2", name: "NoDa", lat: 35.2460, lng: -80.8120 },
+        { id: "c3", name: "South End", lat: 35.2120, lng: -80.8580 },
+        { id: "c4", name: "Plaza Midwood", lat: 35.2210, lng: -80.8050 },
+        { id: "c5", name: "Dilworth", lat: 35.2070, lng: -80.8450 },
+        { id: "c6", name: "Myers Park", lat: 35.1900, lng: -80.8260 },
+        { id: "c7", name: "Ballantyne", lat: 35.0540, lng: -80.8490 },
+        { id: "c8", name: "University City", lat: 35.3070, lng: -80.7450 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Imani Brooks", start: { lat: 35.2271, lng: -80.8431 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c3", hour: 14 }] },
+        { id: "tech-b", name: "Owen Clark", start: { lat: 35.2210, lng: -80.8050 }, color: TECH_COLORS[1], seed: [{ customerId: "c4", hour: 10 }, { customerId: "c2", hour: 15 }] },
+        { id: "tech-c", name: "Sophia Nguyen", start: { lat: 35.0540, lng: -80.8490 }, color: TECH_COLORS[2], seed: [{ customerId: "c7", hour: 11 }] },
+      ],
+    },
+    indianapolis: {
+      name: "Indianapolis, IN",
+      center: [-86.1581, 39.7684], zoom: 11.0, utcOffsetHours: -4,
+      customers: [
+        { id: "c1", name: "Downtown Indy", lat: 39.7684, lng: -86.1581 },
+        { id: "c2", name: "Mass Ave", lat: 39.7740, lng: -86.1480 },
+        { id: "c3", name: "Broad Ripple", lat: 39.8690, lng: -86.1410 },
+        { id: "c4", name: "Fountain Square", lat: 39.7520, lng: -86.1400 },
+        { id: "c5", name: "Carmel", lat: 39.9784, lng: -86.1180 },
+        { id: "c6", name: "Fishers", lat: 39.9568, lng: -86.0139 },
+        { id: "c7", name: "Speedway", lat: 39.8020, lng: -86.2670 },
+        { id: "c8", name: "Castleton", lat: 39.9100, lng: -86.0680 },
+      ],
+      technicians: [
+        { id: "tech-a", name: "Claire Donovan", start: { lat: 39.7684, lng: -86.1581 }, color: TECH_COLORS[0], seed: [{ customerId: "c1", hour: 9 }, { customerId: "c2", hour: 14 }] },
+        { id: "tech-b", name: "Andre Wells", start: { lat: 39.8690, lng: -86.1410 }, color: TECH_COLORS[1], seed: [{ customerId: "c3", hour: 10 }, { customerId: "c5", hour: 15 }] },
+        { id: "tech-c", name: "Lily Zhang", start: { lat: 39.7520, lng: -86.1400 }, color: TECH_COLORS[2], seed: [{ customerId: "c4", hour: 11 }] },
+      ],
+    },
+  };
+
+  Object.keys(CITIES).forEach((k) => {
+    const city = CITIES[k];
+    const pts = city.customers.concat(city.technicians.map((t) => ({ lat: t.start.lat, lng: t.start.lng })));
+    const pad = 0.18;
+    city.bounds = {
+      minLat: Math.min.apply(null, pts.map((p) => p.lat)) - pad,
+      maxLat: Math.max.apply(null, pts.map((p) => p.lat)) + pad,
+      minLng: Math.min.apply(null, pts.map((p) => p.lng)) - pad,
+      maxLng: Math.max.apply(null, pts.map((p) => p.lng)) + pad,
+    };
+  });
+
+  const US_MAP = { center: [-98.35, 39.5], zoom: 3.6 };
+  const MAX_SERVICE_RADIUS_M = 180000; // soft warn beyond ~180 km from nearest center
+
+  let cityKey = null; // set only after address → service center assignment
+  let dayStates = {};
+  let selectedDateKey = null;
+  let calMonth = null;
+  let windowStart = null;
+  let windowEnd = null;
+  let deskReady = false;
+  let nbMap = null;
+  let mapReady = false;
+  let markers = [];
+  let selectedSlot = null;
+  let bookingCount = 0;
+  let useHaversineFallback = false;
+  let recommendTimer = null;
+  let autocompleteTimer = null;
+  let locatedCustomer = null; // { id, name, label, lat, lng }
+  let assignedTechId = null;
+  let assignedTravelSec = null;
+  let assignedCenterKm = null;
+  let suggestItems = [];
+  let suggestActive = -1;
+
+  const el = (id) => document.getElementById(id);
+  function getApiKey() {
+    return (el("apiKey").value || sessionStorage.getItem("nb_appt_api_key") || "").trim();
+  }
+  el("apiKey").value = sessionStorage.getItem("nb_appt_api_key") || "";
+  el("apiKey").addEventListener("input", () => sessionStorage.setItem("nb_appt_api_key", el("apiKey").value.trim()));
+
+  function log(msg) {
+    const box = el("log");
+    const t = new Date().toLocaleTimeString();
+    const line = "[" + t + "] " + msg;
+    box.textContent = box.textContent === "Ready." ? line : box.textContent + "\n" + line;
+    box.scrollTop = box.scrollHeight;
+  }
+  function setStatus(msg) { el("statusBar").innerHTML = msg; }
+  function setSlotMessage(message, hint) {
+    el("slotGrid").removeAttribute("aria-busy");
+    el("slotBadge").hidden = true;
+    el("slotGrid").innerHTML = '<div class="empty-slots">' + message + "</div>";
+    if (hint) el("slotHint").textContent = hint;
+  }
+  function showSlotLoading(sub) {
+    const subText = sub || "Scoring technician slots with Distance Matrix…";
+    el("slotBadge").hidden = true;
+    el("btnBook").disabled = true;
+    el("slotGrid").setAttribute("aria-busy", "true");
+    el("slotHint").textContent = subText;
+    el("slotGrid").innerHTML =
+      '<div class="slot-loading" role="status">' +
+        '<div class="slot-spinner" aria-hidden="true"></div>' +
+        '<p class="slot-loading-title">Finding available times</p>' +
+        '<p class="slot-loading-sub">' + escapeHtml(subText) + "</p>" +
+        '<div class="slot-skeletons" aria-hidden="true">' +
+          '<div class="slot-skel"></div><div class="slot-skel"></div><div class="slot-skel"></div>' +
+        "</div>" +
+      "</div>";
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function toDateKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parseDateKey(key) {
+    const [y, m, d] = key.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function formatLongDate(key) {
+    return parseDateKey(key).toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  }
+  function dayUtcBase(dateKey) {
+    const [y, m, d] = dateKey.split("-").map(Number);
+    return Date.UTC(y, m - 1, d, 0, 0, 0) / 1000;
+  }
+  function unixLocal(hour, minute) {
+    if (!selectedDateKey) throw new Error("No day selected");
+    if (!cityKey || !CITIES[cityKey]) throw new Error("Locate an address to assign a service center first");
+    const offset = CITIES[cityKey].utcOffsetHours * 3600;
+    return dayUtcBase(selectedDateKey) + offset + hour * 3600 + (minute || 0) * 60;
+  }
+  function fmtTime(unix) {
+    if (!cityKey || !CITIES[cityKey]) return "—";
+    const offset = CITIES[cityKey].utcOffsetHours * 3600;
+    const local = unix - dayUtcBase(selectedDateKey) - offset;
+    const h = Math.floor(local / 3600);
+    const m = Math.floor((local % 3600) / 60);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = ((h + 11) % 12) + 1;
+    return h12 + ":" + pad(m) + " " + ampm;
+  }
+  function slotLabel(hour) {
+    const f = (h) => {
+      const ampm = h >= 12 ? "PM" : "AM";
+      return ((h + 11) % 12) + 1 + ":00 " + ampm;
+    };
+    return f(hour) + " – " + f(hour + 1);
+  }
+  function fmtWait(sec) {
+    if (sec == null || !isFinite(sec)) return "—";
+    const s = Math.max(0, Math.round(sec));
+    if (s < 60) return s + " sec";
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return r ? m + " min " + r + " sec" : m + " min";
+  }
+
+  function currentState() {
+    if (!selectedDateKey) return null;
+    return dayStates[selectedDateKey] || null;
+  }
+
+  function cloneDayState(dateKey) {
+    const city = CITIES[cityKey];
+    if (!city) throw new Error("No service center assigned yet");
+    const customers = city.customers.map((c) => ({ ...c }));
+    const prevSelected = selectedDateKey;
+    selectedDateKey = dateKey;
+    const technicians = city.technicians.map((t) => {
+      const appointments = (t.seed || []).map((s, i) => {
+        const cust = customers.find((c) => c.id === s.customerId);
+        return {
+          id: t.id + "-" + dateKey + "-seed-" + i,
+          customerId: s.customerId,
+          name: cust ? cust.name : s.customerId,
+          lat: cust.lat,
+          lng: cust.lng,
+          hour: s.hour,
+          startUnix: unixLocal(s.hour, 0),
+          endUnix: unixLocal(s.hour, 0) + SERVICE_SEC,
+          travelFromPrevSec: null,
+          waitingSec: null,
+          arrivalUnix: null,
+        };
+      });
+      return {
+        id: t.id,
+        name: t.name,
+        start: { ...t.start },
+        color: t.color,
+        appointments,
+        lastRoute: null,
+        lastRouteCoords: null,
+        lastSummary: null,
+        totalWaitingSec: null,
+        routeIsRoad: false,
+      };
+    });
+    selectedDateKey = prevSelected;
+    return { dateKey, city, customers, technicians, routesOptimized: false };
+  }
+
+  function ensureDayState(dateKey) {
+    if (!dayStates[dateKey]) dayStates[dateKey] = cloneDayState(dateKey);
+    return dayStates[dateKey];
+  }
+
+  function haversineSec(a, b) {
+    const R = 6371000;
+    const p1 = (a.lat * Math.PI) / 180;
+    const p2 = (b.lat * Math.PI) / 180;
+    const dp = ((b.lat - a.lat) * Math.PI) / 180;
+    const dl = ((b.lng - a.lng) * Math.PI) / 180;
+    const x = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    const m = 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+    return Math.max(300, Math.round((m / 1000 / 22) * 3600));
+  }
+
+  async function fetchDistanceMatrix(origins, destinations) {
+    const key = getApiKey();
+    const o = origins.map((p) => p.lat + "," + p.lng).join("|");
+    const d = destinations.map((p) => p.lat + "," + p.lng).join("|");
+    const url = BASE + "/distancematrix/json?origins=" + encodeURIComponent(o) +
+      "&destinations=" + encodeURIComponent(d) + "&mode=4w&key=" + encodeURIComponent(key);
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!res.ok || (data.status && data.status !== "Ok" && !data.rows)) throw new Error(data.message || "DM failed");
+    return data;
+  }
+  function parseDuration(elCell) {
+    if (!elCell) return null;
+    if (typeof elCell.duration === "number") return elCell.duration;
+    if (elCell.duration && typeof elCell.duration.value === "number") return elCell.duration.value;
+    return null;
+  }
+  function matrixDuration(matrix, i, j) {
+    try { return parseDuration(matrix.rows[i].elements[j]); } catch (e) { return null; }
+  }
+  async function travelSec(from, to, cache) {
+    const k = from.lat.toFixed(5) + "," + from.lng.toFixed(5) + ">" + to.lat.toFixed(5) + "," + to.lng.toFixed(5);
+    if (cache[k] != null) return cache[k];
+    try {
+      const matrix = await fetchDistanceMatrix([from], [to]);
+      const dur = matrixDuration(matrix, 0, 0);
+      if (dur == null) throw new Error("no duration");
+      cache[k] = dur;
+      useHaversineFallback = false;
+    } catch (e) {
+      useHaversineFallback = true;
+      cache[k] = haversineSec(from, to);
+    }
+    return cache[k];
+  }
+
+  async function scoreInsertion(tech, customer, hour, travelCache) {
+    const startUnix = unixLocal(hour, 0);
+    const endUnix = startUnix + SERVICE_SEC;
+    const workStart = unixLocal(WORK_START_H, 0);
+    const workEnd = unixLocal(WORK_END_H, 0);
+    if (startUnix < workStart || endUnix > workEnd) return { ok: false, reason: "Outside shift" };
+    const sorted = tech.appointments.slice().sort((a, b) => a.hour - b.hour);
+    if (sorted.some((a) => a.hour === hour)) return { ok: false, reason: "Slot occupied" };
+    const prev = [...sorted].reverse().find((a) => a.hour < hour);
+    const next = sorted.find((a) => a.hour > hour);
+    const from = prev ? { lat: prev.lat, lng: prev.lng } : tech.start;
+    const toNext = next ? { lat: next.lat, lng: next.lng } : null;
+    const travelIn = await travelSec(from, customer, travelCache);
+    const travelOut = toNext ? await travelSec(customer, toNext, travelCache) : 0;
+    const travelPrevNext = prev && next ? await travelSec(from, toNext, travelCache) : 0;
+    if (prev) {
+      if (prev.endUnix + travelIn > startUnix + 60) return { ok: false, reason: "Insufficient travel from previous" };
+    } else if (workStart + travelIn > startUnix + 120) {
+      return { ok: false, reason: "Cannot reach from depot in time" };
+    }
+    if (next) {
+      if (endUnix + travelOut > next.startUnix + 60) return { ok: false, reason: "Insufficient travel to next" };
+    }
+    const insertionCost = travelIn + travelOut - (prev && next ? travelPrevNext : 0);
+    const idleFillBonus = prev && next && next.hour - prev.hour === 2 && hour === prev.hour + 1 ? -600 : 0;
+    const score = insertionCost + idleFillBonus + tech.appointments.length * 180;
+    return {
+      ok: true, score, travelIn, travelOut, insertionCost,
+      techId: tech.id, techName: tech.name, hour,
+      reason: (prev ? "After " + prev.name : "From depot") + " · +" + Math.round(Math.max(0, insertionCost) / 60) + " min travel impact",
+    };
+  }
+
+  async function computeWaitingForTech(tech, travelCache) {
+    const sorted = tech.appointments.slice().sort((a, b) => a.hour - b.hour || a.startUnix - b.startUnix);
+    let total = 0;
+    const workStart = unixLocal(WORK_START_H, 0);
+    for (let i = 0; i < sorted.length; i++) {
+      const appt = sorted[i];
+      const prev = i > 0 ? sorted[i - 1] : null;
+      const from = prev ? { lat: prev.lat, lng: prev.lng } : tech.start;
+      const travel = await travelSec(from, { lat: appt.lat, lng: appt.lng }, travelCache);
+      const arrival = (prev ? prev.endUnix : workStart) + travel;
+      const waiting = Math.max(0, appt.startUnix - arrival);
+      appt.travelFromPrevSec = travel;
+      appt.arrivalUnix = arrival;
+      appt.waitingSec = waiting;
+      total += waiting;
+    }
+    tech.totalWaitingSec = total;
+  }
+
+  function getCityCustomers() {
+    return (CITIES[cityKey] && CITIES[cityKey].customers) || [];
+  }
+
+  function parsePlaceItem(it) {
+    if (!it) return null;
+    const pos = it.position || (it.access && it.access[0]) || {};
+    const lat = Number(pos.lat != null ? pos.lat : pos.latitude);
+    const lng = Number(pos.lng != null ? pos.lng : (pos.lon != null ? pos.lon : pos.longitude));
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    const label = (it.address && it.address.label) || it.title || (lat.toFixed(5) + ", " + lng.toFixed(5));
+    const title = it.title || label;
+    return { title: title, label: label, lat: lat, lng: lng };
+  }
+
+  async function fetchAutocomplete(query) {
+    const key = getApiKey();
+    if (!key) throw new Error("Enter your API key to search addresses.");
+    // Bias only after a service center is assigned; otherwise search US-wide
+    const city = cityKey ? CITIES[cityKey] : null;
+    const at = city ? (city.center[1] + "," + city.center[0]) : "";
+    let url = BASE + "/autocomplete?q=" + encodeURIComponent(query) +
+      "&limit=6&in=" + encodeURIComponent("countryCode:USA") +
+      "&key=" + encodeURIComponent(key);
+    if (at) url += "&at=" + encodeURIComponent(at);
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || json.msg || ("Autocomplete HTTP " + res.status));
+    return (json.items || []).map(parsePlaceItem).filter(Boolean);
+  }
+
+  async function fetchGeocode(query) {
+    const key = getApiKey();
+    if (!key) throw new Error("Enter your API key to geocode an address.");
+    const city = cityKey ? CITIES[cityKey] : null;
+    const at = city ? (city.center[1] + "," + city.center[0]) : "";
+    let url = BASE + "/geocode?q=" + encodeURIComponent(query) +
+      "&in=" + encodeURIComponent("countryCode:USA") +
+      "&key=" + encodeURIComponent(key);
+    if (at) url += "&at=" + encodeURIComponent(at);
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || json.msg || ("Geocode HTTP " + res.status));
+    const items = (json.items || []).map(parsePlaceItem).filter(Boolean);
+    if (!items.length) throw new Error("No geocode results for that address.");
+    return items[0];
+  }
+
+  function setLocStatus(message, kind, assignLine) {
+    const box = el("locStatus");
+    if (!box) return;
+    box.classList.remove("ok", "err");
+    if (kind) box.classList.add(kind);
+    box.innerHTML = escapeHtml(message) +
+      (assignLine ? '<span class="assign">' + escapeHtml(assignLine) + "</span>" : "");
+  }
+
+  function hideSuggest() {
+    const list = el("addrSuggest");
+    if (!list) return;
+    list.hidden = true;
+    list.innerHTML = "";
+    suggestItems = [];
+    suggestActive = -1;
+  }
+
+  function renderSuggest(items) {
+    const list = el("addrSuggest");
+    if (!list) return;
+    suggestItems = items || [];
+    suggestActive = -1;
+    if (!suggestItems.length) {
+      hideSuggest();
+      return;
+    }
+    list.innerHTML = suggestItems.map((it, idx) =>
+      '<li role="option"><button type="button" data-idx="' + idx + '">' +
+        '<span class="title">' + escapeHtml(it.title) + "</span>" +
+        '<span class="sub">' + escapeHtml(it.label) + "</span>" +
+      "</button></li>"
+    ).join("");
+    list.hidden = false;
+  }
+
+  function haversineMeters(a, b) {
+    const R = 6371000;
+    const p1 = (a.lat * Math.PI) / 180;
+    const p2 = (b.lat * Math.PI) / 180;
+    const dp = ((b.lat - a.lat) * Math.PI) / 180;
+    const dl = ((b.lng - a.lng) * Math.PI) / 180;
+    const x = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  }
+
+  function findNearestServiceCenter(customer) {
+    let best = null;
+    Object.keys(CITIES).forEach((k) => {
+      const city = CITIES[k];
+      const centerPt = { lat: city.center[1], lng: city.center[0] };
+      const meters = haversineMeters(centerPt, customer);
+      if (!best || meters < best.meters) {
+        best = { cityKey: k, name: city.name, meters: meters, center: centerPt };
+      }
+    });
+    return best;
+  }
+
+  async function assignNearestTechnicianInCenter(customer, centerKey) {
+    const city = CITIES[centerKey];
+    if (!city || !customer) {
+      assignedTechId = null;
+      assignedTravelSec = null;
+      return null;
+    }
+    const cache = {};
+    let best = null;
+    for (const t of city.technicians) {
+      let sec;
+      try {
+        sec = await travelSec(t.start, customer, cache);
+      } catch (_) {
+        sec = haversineSec(t.start, customer);
+      }
+      const meters = haversineMeters(t.start, customer);
+      if (!best || sec < best.travelSec) {
+        best = { techId: t.id, techName: t.name, travelSec: sec, meters: meters, color: t.color };
+      }
+    }
+    assignedTechId = best ? best.techId : null;
+    assignedTravelSec = best ? best.travelSec : null;
+    return best;
+  }
+
+  async function resolveServiceCenterAndTech(customer) {
+    const center = findNearestServiceCenter(customer);
+    if (!center) {
+      cityKey = null;
+      assignedTechId = null;
+      assignedTravelSec = null;
+      assignedCenterKm = null;
+      return null;
+    }
+    const prevCity = cityKey;
+    cityKey = center.cityKey;
+    assignedCenterKm = center.meters / 1000;
+    if (prevCity && prevCity !== cityKey) {
+      dayStates = {};
+      selectedDateKey = null;
+      selectedSlot = null;
+      el("selectedDayLabel").textContent = "No day selected — pick a date on the calendar";
+      el("slotGrid").innerHTML = '<div class="empty-slots">Select a calendar day for the assigned service center.</div>';
+      renderCalendar();
+    }
+    const tech = await assignNearestTechnicianInCenter(customer, cityKey);
+    return { center: center, tech: tech, far: center.meters > MAX_SERVICE_RADIUS_M };
+  }
+
+  // Back-compat alias used by recommendSlots
+  async function assignNearestTechnician(customer) {
+    const resolved = await resolveServiceCenterAndTech(customer);
+    return resolved && resolved.tech ? Object.assign({}, resolved.tech, {
+      centerName: resolved.center.name,
+      centerKm: assignedCenterKm,
+    }) : null;
+  }
+
+  function flyMapToCustomer(customer) {
+    const ml = getMlMap();
+    if (!ml || !customer || !mapReady) return;
+    const city = cityKey ? CITIES[cityKey] : null;
+    const zoom = city ? Math.max(city.zoom, 11.5) : 12;
+    try {
+      if (ml.flyTo) ml.flyTo({ center: [customer.lng, customer.lat], zoom: zoom });
+      else if (nbMap && nbMap.setCenter) nbMap.setCenter({ lat: customer.lat, lng: customer.lng });
+    } catch (_) {}
+  }
+
+  function flyMapToServiceCenter() {
+    const city = cityKey ? CITIES[cityKey] : null;
+    const ml = getMlMap();
+    if (!ml || !city || !mapReady) return;
+    try {
+      if (ml.flyTo) ml.flyTo({ center: city.center, zoom: city.zoom });
+      else if (nbMap && nbMap.setCenter) {
+        nbMap.setCenter({ lat: city.center[1], lng: city.center[0] });
+        if (nbMap.setZoom) nbMap.setZoom(city.zoom);
+      }
+    } catch (_) {}
+  }
+
+  async function applyLocatedPlace(place, sourceLabel) {
+    if (!place) return;
+    if (!deskReady) {
+      setLocStatus("Click Start desk first, then locate the address.", "err");
+      return;
+    }
+    const displayName = el("custName").value.trim();
+    locatedCustomer = {
+      id: "geocoded",
+      name: displayName || place.title || "Service location",
+      label: place.label,
+      lat: place.lat,
+      lng: place.lng,
+    };
+    el("addrInput").value = place.label;
+    hideSuggest();
+    setLocStatus("Located via " + sourceLabel + " · " + place.lat.toFixed(5) + ", " + place.lng.toFixed(5), "ok", "Resolving nearest service center…");
+    const resolved = await resolveServiceCenterAndTech(locatedCustomer);
+    if (!resolved || !resolved.center || !resolved.tech) {
+      setLocStatus("Located, but no service center / technician could be assigned.", "err");
+      await renderTechsWithWaiting();
+      updateConfirm();
+      return;
+    }
+    const km = (resolved.center.meters / 1000).toFixed(1);
+    const warn = resolved.far ? " (outside typical coverage — nearest available)" : "";
+    setLocStatus(
+      "Located via " + sourceLabel + " · " + place.lat.toFixed(5) + ", " + place.lng.toFixed(5),
+      resolved.far ? "err" : "ok",
+      "Service center: " + resolved.center.name + " (~" + km + " km)" + warn +
+        " · Tech: " + resolved.tech.techName + " (~" + fmtWait(resolved.tech.travelSec) + " from depot)"
+    );
+    log("Assigned center " + resolved.center.name + " + tech " + resolved.tech.techName + " for " + place.label);
+    flyMapToCustomer(locatedCustomer);
+    redrawMap();
+    await renderTechsWithWaiting();
+    updateConfirm();
+    if (selectedDateKey) scheduleRecommend();
+    setStatus(
+      "Service center <strong>" + escapeHtml(resolved.center.name) + "</strong> · technician <strong>" +
+      escapeHtml(resolved.tech.techName) + "</strong>. Pick a calendar day for slots."
+    );
+  }
+
+  async function runAutocomplete() {
+    const q = el("addrInput").value.trim();
+    if (q.length < 3) {
+      hideSuggest();
+      return;
+    }
+    try {
+      const items = await fetchAutocomplete(q);
+      renderSuggest(items);
+      if (!items.length) setLocStatus("No autocomplete suggestions. Try Locate for a full geocode.", null);
+    } catch (e) {
+      hideSuggest();
+      setLocStatus(e.message || "Autocomplete failed", "err");
+    }
+  }
+
+  async function runGeocodeFromInput() {
+    const q = el("addrInput").value.trim();
+    if (!q) {
+      setLocStatus("Enter an address to locate.", "err");
+      return;
+    }
+    el("btnGeocode").disabled = true;
+    setLocStatus("Geocoding address…", null);
+    try {
+      const place = await fetchGeocode(q);
+      await applyLocatedPlace(place, "Geocode API");
+    } catch (e) {
+      setLocStatus(e.message || "Geocode failed", "err");
+      log("Geocode error: " + e.message);
+    } finally {
+      el("btnGeocode").disabled = false;
+    }
+  }
+
+  function getSelectedCustomer() {
+    if (!locatedCustomer) return null;
+    const name = el("custName").value.trim();
+    return {
+      id: locatedCustomer.id,
+      name: name || locatedCustomer.name || "Service location",
+      label: locatedCustomer.label,
+      lat: locatedCustomer.lat,
+      lng: locatedCustomer.lng,
+    };
+  }
+
+  function getAssignedTechFromState(state) {
+    if (!state || !assignedTechId) return null;
+    return state.technicians.find((t) => t.id === assignedTechId) || null;
+  }
+
+  function updateConfirm() {
+    const cust = getSelectedCustomer();
+    const name = el("custName").value.trim() || (cust && cust.name) || "—";
+    el("cCustomer").textContent = name + (el("custPhone").value.trim() ? " · " + el("custPhone").value.trim() : "");
+    el("cCenter").textContent = (cityKey && CITIES[cityKey]) ? CITIES[cityKey].name : "—";
+    el("cDay").textContent = selectedDateKey ? formatLongDate(selectedDateKey) : "—";
+    el("cTime").textContent = selectedSlot ? slotLabel(selectedSlot.hour) : "—";
+    el("cTech").textContent = selectedSlot
+      ? selectedSlot.techName
+      : (assignedTechId && CITIES[cityKey]
+        ? (CITIES[cityKey].technicians.find((t) => t.id === assignedTechId) || {}).name || "—"
+        : "—");
+    el("cLoc").textContent = cust
+      ? (cust.label || (cust.lat.toFixed(5) + ", " + cust.lng.toFixed(5)))
+      : "—";
+    el("btnBook").disabled = !(selectedSlot && selectedDateKey && cust && el("custName").value.trim());
+    setConfirmOpen(!!selectedSlot);
+    updateSteps();
+  }
+
+  async function recommendSlots() {
+    const state = currentState();
+    if (!state || !selectedDateKey) {
+      setSlotMessage("Select a calendar day to see available times.", "Select a day to see NextBillion-recommended slots for that date.");
+      return;
+    }
+    if (!el("custName").value.trim()) {
+      setSlotMessage(
+        "Enter the customer name, then slots will appear for the selected day.",
+        "Enter a customer name to rank slots for " + formatLongDate(selectedDateKey) + "."
+      );
+      updateConfirm();
+      return;
+    }
+    const customer = getSelectedCustomer();
+    if (!customer) {
+      setSlotMessage("Locate a service address first (Autocomplete or Geocode).", "Search an address to assign a service center and technician.");
+      updateConfirm();
+      return;
+    }
+    if (!cityKey || !assignedTechId) {
+      await assignNearestTechnician(customer);
+    }
+    const tech = getAssignedTechFromState(state);
+    if (!tech) {
+      setSlotMessage("Could not assign a technician for this location.", "Try another US address near a service center.");
+      updateConfirm();
+      return;
+    }
+    selectedSlot = null;
+    el("btnBook").disabled = true;
+    showSlotLoading("Checking " + tech.name + "’s availability on " + formatLongDate(selectedDateKey) + "…");
+    const travelCache = {};
+    const candidates = [];
+    for (const hour of SLOT_HOURS) {
+      const s = await scoreInsertion(tech, customer, hour, travelCache);
+      if (s.ok) candidates.push(s);
+    }
+    candidates.sort((a, b) => a.score - b.score);
+    const top = candidates.slice(0, 8);
+    el("slotGrid").removeAttribute("aria-busy");
+    el("slotBadge").hidden = top.length === 0;
+    el("slotGrid").innerHTML = "";
+    if (!top.length) {
+      setSlotMessage("No feasible slots on this day for " + escapeHtml(tech.name) + ". Try another day.");
+      setStatus("No feasible slots on " + escapeHtml(formatLongDate(selectedDateKey)) + " for " + escapeHtml(tech.name) + ".");
+      updateConfirm();
+      return;
+    }
+    top.forEach((c, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "slot" + (idx < 3 ? " recommended" : "");
+      btn.innerHTML =
+        '<div class="time">' + escapeHtml(slotLabel(c.hour)) + '</div>' +
+        '<div class="tag">' + (idx === 0 ? "Best" : idx < 3 ? "Recommended" : "Available") + "</div>" +
+        '<div class="meta">' + escapeHtml(c.techName) + " · " + escapeHtml(c.reason) + "</div>";
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".slot").forEach((x) => x.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedSlot = c;
+        updateConfirm();
+        setStatus("Selected <strong>" + escapeHtml(slotLabel(c.hour)) + "</strong> with " + escapeHtml(c.techName));
+      });
+      el("slotGrid").appendChild(btn);
+    });
+    el("slotHint").textContent = top.length + " times on " + tech.name + "’s schedule · " + formatLongDate(selectedDateKey) +
+      (useHaversineFallback ? " (approx. travel)" : " (live Distance Matrix)");
+    log("Recommended " + top.length + " slots for " + customer.name + " with " + tech.name + " on " + selectedDateKey);
+    updateConfirm();
+  }
+
+  async function renderTechsWithWaiting() {
+    const root = el("techList");
+    if (!locatedCustomer || !cityKey || !assignedTechId) {
+      root.innerHTML = '<div class="tech-meta">Locate a customer address to assign a service center and nearest technician.</div>';
+      return;
+    }
+    const city = CITIES[cityKey];
+    const cityTech = (city.technicians || []).find((t) => t.id === assignedTechId);
+    const state = currentState();
+    const tech = state ? getAssignedTechFromState(state) : null;
+    if (!cityTech && !tech) {
+      root.innerHTML = '<div class="tech-meta">Assigned technician not found for this service center.</div>';
+      return;
+    }
+    const t = tech || {
+      id: cityTech.id,
+      name: cityTech.name,
+      color: cityTech.color,
+      appointments: [],
+      totalWaitingSec: null,
+    };
+    if (tech) {
+      const cache = {};
+      await computeWaitingForTech(t, cache);
+    }
+    const sorted = (t.appointments || []).slice().sort((a, b) => a.hour - b.hour);
+    const rows = sorted.map((a) => {
+      const waitClass = a.waitingSec != null && a.waitingSec <= 60 ? "wait zero" : "wait";
+      return '<div class="appt-row"><strong>' + escapeHtml(slotLabel(a.hour)) + "</strong> · " +
+        escapeHtml(a.name) + "<br/>Waiting: <span class=\"" + waitClass + "\">" +
+        escapeHtml(fmtWait(a.waitingSec)) + "</span></div>";
+    }).join("");
+    const travelNote = assignedTravelSec != null
+      ? " · ~" + fmtWait(assignedTravelSec) + " from depot to customer"
+      : "";
+    const centerKm = assignedCenterKm != null ? (" · ~" + assignedCenterKm.toFixed(1) + " km from center") : "";
+    root.innerHTML =
+      "<div class='tech-card assigned'>" +
+        "<header><span class='dot' style='background:" + t.color + "'></span>" + escapeHtml(city.name) +
+        "<span class='assign-badge'>Service center</span></header>" +
+        "<div class='tech-meta'>Serving this customer" + escapeHtml(centerKm) + "</div>" +
+        "<header style='margin-top:10px'><span class='dot' style='background:" + t.color + "'></span>" + escapeHtml(t.name) +
+        "<span class='assign-badge'>Nearest tech</span></header>" +
+        "<div class='tech-meta'>Shift 9:00 AM – 6:00 PM · " +
+        (selectedDateKey ? sorted.length + " appointments on " + formatLongDate(selectedDateKey) : "Select a day for schedule") +
+        escapeHtml(travelNote) + "</div>" +
+        (selectedDateKey
+          ? (rows || "<div class='tech-meta'>No appointments yet on this day</div>")
+          : "<div class='tech-meta'>Pick a calendar day to load this technician’s schedule.</div>") +
+      "</div>";
+  }
+
+  function redrawMap() {
+    const ml = getMlMap();
+    if (!ml || !mapReady) return;
+    try {
+      clearMarkers();
+      const features = [];
+      const state = currentState();
+      const techsToDraw = state
+        ? (assignedTechId
+          ? state.technicians.filter((t) => t.id === assignedTechId)
+          : state.technicians)
+        : [];
+      techsToDraw.forEach((t) => {
+        if ((!t.lastRouteCoords || !t.routeIsRoad) && t.lastRoute) {
+          const fromRoute = routeToLineCoords(t.lastRoute);
+          if (fromRoute && fromRoute.length > 2) {
+            t.lastRouteCoords = fromRoute;
+            t.routeIsRoad = true;
+          }
+        }
+        const line = (t.lastRouteCoords && t.lastRouteCoords.length > 1)
+          ? t.lastRouteCoords
+          : techFallbackCoords(t);
+        features.push({ type: "Feature", properties: { color: t.color }, geometry: { type: "LineString", coordinates: line } });
+        addMapMarker(t.start.lng, t.start.lat, t.color, "D");
+        t.appointments.slice().sort((a, b) => a.hour - b.hour).forEach((a, idx) => {
+          addMapMarker(a.lng, a.lat, t.color, String(idx + 1));
+        });
+      });
+      if (!state && assignedTechId && CITIES[cityKey]) {
+        const t = CITIES[cityKey].technicians.find((x) => x.id === assignedTechId);
+        if (t) addMapMarker(t.start.lng, t.start.lat, t.color, "D");
+      }
+      if (locatedCustomer) {
+        addMapMarker(locatedCustomer.lng, locatedCustomer.lat, "#b91c1c", "C");
+      }
+      if (ml.getSource && ml.getSource("routes")) {
+        ml.getSource("routes").setData({ type: "FeatureCollection", features });
+      } else if (ml.addSource && ml.addLayer) {
+        ml.addSource("routes", { type: "geojson", data: { type: "FeatureCollection", features } });
+        ml.addLayer({
+          id: "routes-line", type: "line", source: "routes",
+          paint: { "line-color": ["get", "color"], "line-width": 4, "line-opacity": 0.85 },
+        });
+      }
+    } catch (e) {
+      log("Map redraw skipped: " + e.message);
+    }
+  }
+
+  function updateSteps() {
+    const hasCustomer = !!(el("custName").value.trim() && getSelectedCustomer());
+    const hasDay = !!selectedDateKey;
+    const hasSlot = !!selectedSlot;
+    const doneFlags = [hasCustomer, hasDay, hasSlot, false];
+    const activeIdx = !hasCustomer ? 0 : !hasDay ? 1 : !hasSlot ? 2 : 3;
+    ["step1", "step2", "step3", "step4"].forEach((id, idx) => {
+      const node = el(id);
+      node.classList.remove("active", "done");
+      if (doneFlags[idx]) node.classList.add("done");
+      if (idx === activeIdx) node.classList.add("active");
+    });
+  }
+
+  let confirmHideTimer = null;
+  function setConfirmOpen(open) {
+    const box = el("confirmBox");
+    const empty = el("confirmEmpty");
+    const isOpen = box.classList.contains("is-open");
+    if (open) {
+      if (confirmHideTimer) {
+        clearTimeout(confirmHideTimer);
+        confirmHideTimer = null;
+      }
+      empty.hidden = true;
+      empty.setAttribute("aria-hidden", "true");
+      box.classList.remove("is-closing");
+      box.hidden = false;
+      box.setAttribute("aria-hidden", "false");
+      if (!isOpen) {
+        box.classList.remove("is-open");
+        void box.offsetWidth;
+        box.classList.add("is-open");
+      }
+      return;
+    }
+    if (!isOpen && box.hidden) return;
+    box.classList.remove("is-open");
+    box.classList.add("is-closing");
+    box.setAttribute("aria-hidden", "true");
+    const prefersReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finish = () => {
+      confirmHideTimer = null;
+      if (selectedSlot) return;
+      box.hidden = true;
+      box.classList.remove("is-closing");
+      empty.hidden = false;
+      empty.setAttribute("aria-hidden", "false");
+    };
+    if (prefersReduce) {
+      finish();
+      return;
+    }
+    if (confirmHideTimer) clearTimeout(confirmHideTimer);
+    confirmHideTimer = setTimeout(finish, 220);
+  }
+
+  function isSelectableDay(date) {
+    if (!deskReady || !windowStart || !windowEnd) return false;
+    if (date.getDay() === 0) return false;
+    const key = toDateKey(date);
+    return key >= toDateKey(windowStart) && key <= toDateKey(windowEnd);
+  }
+
+  function renderCalendar() {
+    if (!calMonth) return;
+    const y = calMonth.getFullYear();
+    const m = calMonth.getMonth();
+    el("calTitle").textContent = calMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    const first = new Date(y, m, 1);
+    const startPad = first.getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const grid = el("calGrid");
+    grid.innerHTML = "";
+    const totalCells = Math.ceil((startPad + daysInMonth) / 7) * 7;
+    for (let i = 0; i < totalCells; i++) {
+      const dayNum = i - startPad + 1;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cal-day";
+      if (dayNum < 1 || dayNum > daysInMonth) {
+        btn.disabled = true;
+        btn.classList.add("outside");
+        btn.textContent = "";
+        btn.setAttribute("aria-hidden", "true");
+      } else {
+        const date = new Date(y, m, dayNum);
+        const key = toDateKey(date);
+        btn.textContent = String(dayNum);
+        btn.dataset.dateKey = key;
+        const selectable = isSelectableDay(date);
+        if (!selectable) {
+          btn.disabled = true;
+          btn.title = deskReady
+            ? (date.getDay() === 0 ? "Closed on Sundays" : "Outside booking window")
+            : "Click Start desk first";
+        } else {
+          btn.disabled = false;
+          btn.classList.add("available");
+          btn.title = "Book on " + formatLongDate(key);
+        }
+        if (selectedDateKey === key) btn.classList.add("selected");
+        if (dayStates[key] && dayStates[key].technicians.some((t) => t.appointments.some((a) => String(a.id).indexOf("-seed-") === -1))) {
+          btn.classList.add("has-bookings");
+        }
+      }
+      grid.appendChild(btn);
+    }
+  }
+
+  async function selectDay(dateKey) {
+    if (!deskReady) {
+      setStatus("Click <strong>Start desk</strong> first, then pick a calendar day.");
+      return;
+    }
+    if (!locatedCustomer || !cityKey) {
+      setStatus("Locate a customer <strong>address</strong> first so a service center and technician can be assigned.");
+      return;
+    }
+    const date = parseDateKey(dateKey);
+    if (!isSelectableDay(date)) {
+      setStatus("That day is not available for booking.");
+      return;
+    }
+    selectedDateKey = dateKey;
+    selectedSlot = null;
+    const state = ensureDayState(dateKey);
+    el("selectedDayLabel").textContent = "Booking for " + formatLongDate(dateKey);
+    renderCalendar();
+    updateConfirm();
+    showSlotLoading("Processing " + formatLongDate(dateKey) + " — optimizing routes and scoring slots…");
+    setStatus("Day selected: <strong>" + escapeHtml(formatLongDate(dateKey)) + "</strong>. Loading schedules…");
+    try {
+      await renderTechsWithWaiting();
+      redrawMap();
+      await optimizeDayTechnicians(state, { force: !state.routesOptimized });
+      await renderTechsWithWaiting();
+      redrawMap();
+    } catch (e) {
+      log("Day board update: " + e.message);
+    }
+    setStatus("Day selected: <strong>" + escapeHtml(formatLongDate(dateKey)) + "</strong>. Finding NB recommended slots…");
+    scheduleRecommend();
+  }
+
+  function scheduleRecommend() {
+    clearTimeout(recommendTimer);
+    recommendTimer = setTimeout(() => {
+      recommendSlots().catch((e) => {
+        log("Recommend error: " + e.message);
+        setSlotMessage(escapeHtml(e.message), "Could not load available times.");
+        setStatus("Could not recommend slots: " + escapeHtml(e.message));
+      });
+    }, 180);
+  }
+
+  function getMlMap() { return nbMap && nbMap.map ? nbMap.map : null; }
+  function clearMarkers() {
+    markers.forEach((m) => { try { m.remove(); } catch (e) {} });
+    markers = [];
+  }
+  function addMapMarker(lng, lat, color, label) {
+    const ml = getMlMap();
+    if (!ml) return null;
+    const node = document.createElement("div");
+    node.className = "map-marker";
+    node.style.background = color;
+    node.textContent = label;
+    let m = null;
+    try {
+      if (typeof maplibregl !== "undefined" && maplibregl.Marker) {
+        m = new maplibregl.Marker({ element: node }).setLngLat([lng, lat]).addTo(ml);
+      } else if (typeof nextbillion !== "undefined" && nextbillion.maps && nextbillion.maps.Marker) {
+        m = new nextbillion.maps.Marker({ element: node }).setLngLat([lng, lat]).addTo(ml);
+      } else if (ml && typeof ml.Marker === "function") {
+        m = new ml.Marker({ element: node }).setLngLat([lng, lat]).addTo(ml);
+      }
+    } catch (e) {
+      log("Marker skipped: " + e.message);
+      return null;
+    }
+    if (m) markers.push(m);
+    return m;
+  }
+  function techFallbackCoords(tech) {
+    const pts = [[tech.start.lng, tech.start.lat]];
+    tech.appointments.slice().sort((a,b)=>a.hour-b.hour).forEach((a)=>pts.push([a.lng,a.lat]));
+    pts.push([tech.start.lng, tech.start.lat]);
+    return pts;
+  }
+  function decodePolylineLegacy(encoded, precision) {
+    precision = precision == null ? 5 : precision;
+    const coordinates = [];
+    let index = 0, lat = 0, lng = 0;
+    const factor = Math.pow(10, precision);
+    while (index < encoded.length) {
+      let b, shift = 0, result = 0;
+      do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      const dlat = (result & 1) ? ~(result >> 1) : (result >> 1);
+      lat += dlat;
+      shift = 0; result = 0;
+      do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      const dlng = (result & 1) ? ~(result >> 1) : (result >> 1);
+      lng += dlng;
+      coordinates.push([lng / factor, lat / factor]);
+    }
+    return coordinates;
+  }
+  function decodePolylineToLngLat(encoded) {
+    if (!encoded || typeof encoded !== "string") return null;
+    const poly = typeof nextbillion !== "undefined" && nextbillion.utils && nextbillion.utils.polyline;
+    if (poly && typeof poly.decode === "function") {
+      try {
+        const d5 = poly.decode(encoded, 5);
+        if (d5 && d5.length >= 2) {
+          return d5.map((c) => {
+            const pair = Array.isArray(c) ? c.slice(0, 2) : [];
+            return [pair[1], pair[0]];
+          });
+        }
+      } catch (_) {}
+      try {
+        const d6 = poly.decode(encoded, 6);
+        if (d6 && d6.length >= 2) {
+          return d6.map((c) => {
+            const pair = Array.isArray(c) ? c.slice(0, 2) : [];
+            return [pair[1], pair[0]];
+          });
+        }
+      } catch (_) {}
+    }
+    let legacy = decodePolylineLegacy(encoded, 5);
+    if (legacy.length >= 2) return legacy;
+    legacy = decodePolylineLegacy(encoded, 6);
+    return legacy.length >= 2 ? legacy : null;
+  }
+  function encodedPolylineFromGeometryField(g) {
+    if (typeof g === "string") return g;
+    if (!g || typeof g !== "object") return null;
+    const keys = ["polyline", "polyline6", "polyline5", "encoded_polyline", "points", "encoded_polyline6"];
+    for (let i = 0; i < keys.length; i++) {
+      const v = g[keys[i]];
+      if (typeof v === "string" && v.length) return v;
+    }
+    return null;
+  }
+  function mergeLineCoords(parts) {
+    const out = [];
+    parts.forEach((part) => {
+      if (!part || !part.length) return;
+      if (!out.length) { part.forEach((c) => out.push(c)); return; }
+      const a = out[out.length - 1];
+      const b = part[0];
+      const skip = a[0] === b[0] && a[1] === b[1] ? 1 : 0;
+      for (let k = skip; k < part.length; k++) out.push(part[k]);
+    });
+    return out.length >= 2 ? out : null;
+  }
+  function routeToLineCoords(route) {
+    if (!route) return null;
+    if (route.polyline && typeof route.polyline === "string") {
+      const d = decodePolylineToLngLat(route.polyline);
+      if (d && d.length >= 2) return d;
+    }
+    if (route.geometry) {
+      if (typeof route.geometry === "string") {
+        const d = decodePolylineToLngLat(route.geometry);
+        if (d && d.length >= 2) return d;
+      }
+      const g = route.geometry;
+      const enc = encodedPolylineFromGeometryField(g);
+      if (enc) {
+        const d = decodePolylineToLngLat(enc);
+        if (d && d.length >= 2) return d;
+      }
+      if (g.type === "LineString" && g.coordinates && g.coordinates.length >= 2) {
+        return g.coordinates.map((c) => [c[0], c[1]]);
+      }
+    }
+    const segments = [];
+    (route.steps || []).forEach((step) => {
+      if (!step.geometry) return;
+      if (typeof step.geometry === "string") {
+        const d = decodePolylineToLngLat(step.geometry);
+        if (d && d.length) segments.push(d);
+      } else if (step.geometry.coordinates && step.geometry.coordinates.length >= 2) {
+        segments.push(step.geometry.coordinates.map((c) => [c[0], c[1]]));
+      } else {
+        const enc = encodedPolylineFromGeometryField(step.geometry);
+        if (enc) {
+          const d = decodePolylineToLngLat(enc);
+          if (d && d.length) segments.push(d);
+        }
+      }
+    });
+    if (segments.length) return mergeLineCoords(segments);
+    const pts = [];
+    (route.steps || []).forEach((step) => {
+      if (step.location && step.location.length >= 2) {
+        pts.push([step.location[1], step.location[0]]);
+      }
+    });
+    return pts.length >= 2 ? pts : null;
+  }
+  async function pollOptimization(id, key) {
+    for (let i = 0; i < 40; i++) {
+      const res = await fetch(BASE + "/optimization/v2/result?id=" + encodeURIComponent(id) + "&key=" + encodeURIComponent(key));
+      const data = await res.json();
+      if (data.result && data.result.routes) return data;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    throw new Error("Optimization result timeout");
+  }
+
+  function buildTechPayload(tech) {
+    const locations = [tech.start.lat + "," + tech.start.lng];
+    const jobs = [];
+    tech.appointments.slice().sort((a, b) => a.hour - b.hour).forEach((a) => {
+      locations.push(a.lat + "," + a.lng);
+      jobs.push({
+        id: a.id,
+        location_index: locations.length - 1,
+        service: SERVICE_SEC,
+        delivery: [1],
+        time_windows: [[a.startUnix, a.startUnix + SLOT_LEN_SEC]],
+        description: a.name,
+      });
+    });
+    return {
+      description: "Appointment Desk — " + tech.name + " — " + selectedDateKey,
+      with_geometry: true,
+      locations: { id: 1, location: locations },
+      jobs,
+      vehicles: [{
+        id: tech.id, start_index: 0, end_index: 0, capacity: [20], costs: { fixed: 0 },
+        time_window: [unixLocal(WORK_START_H, 0), unixLocal(WORK_END_H, 0)],
+      }],
+      options: { routing: { mode: "car" }, objective: { travel_cost: "duration" }, with_geometry: true },
+    };
+  }
+
+  async function optimizeTech(tech) {
+    const key = getApiKey();
+    if (!key) throw new Error("API key required for Route Optimization");
+    const payload = buildTechPayload(tech);
+    if (!payload.jobs.length) {
+      tech.lastRoute = null; tech.lastRouteCoords = null;
+      tech.lastSummary = { duration: 0, distance: 0, count: 0 };
+      tech.routeIsRoad = false;
+      return;
+    }
+    const res = await fetch(BASE + "/optimization/v2?key=" + encodeURIComponent(key), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
+    const ack = await res.json();
+    if (!res.ok) throw new Error("Optimize failed: " + (ack.message || JSON.stringify(ack)));
+    const result = await pollOptimization(ack.id, key);
+    const route = (result.result && result.result.routes && result.result.routes[0]) || null;
+    tech.lastRoute = route;
+    const coords = routeToLineCoords(route);
+    if (coords && coords.length >= 2) {
+      tech.lastRouteCoords = coords;
+      tech.routeIsRoad = true;
+      log("Road geometry for " + tech.name + " (" + coords.length + " points)");
+    } else {
+      tech.lastRouteCoords = techFallbackCoords(tech);
+      tech.routeIsRoad = false;
+      log("No road geometry in RO response for " + tech.name + " — using stop-order path");
+    }
+    tech.lastSummary = {
+      duration: (route && route.duration) || (result.result && result.result.summary && result.result.summary.duration) || 0,
+      distance: (route && route.distance) || (result.result && result.result.summary && result.result.summary.distance) || 0,
+      count: tech.appointments.length,
+    };
+  }
+
+  async function optimizeDayTechnicians(state, opts) {
+    if (!state) return;
+    const force = !!(opts && opts.force);
+    if (!getApiKey()) {
+      log("Skip route optimize — API key required for road geometry");
+      return;
+    }
+    const techs = state.technicians.filter((t) => t.appointments.length > 0);
+    const focused = assignedTechId ? techs.filter((t) => t.id === assignedTechId) : techs;
+    const pool = focused.length ? focused : techs;
+    const need = force ? pool : pool.filter((t) => !t.routeIsRoad);
+    if (!need.length) {
+      state.routesOptimized = true;
+      return;
+    }
+    setStatus("Optimizing technician route (road geometry) for <strong>" +
+      escapeHtml(formatLongDate(state.dateKey || selectedDateKey)) + "</strong>…");
+    log("Optimizing " + need.length + " technician route(s)…");
+    for (const tech of need) {
+      try {
+        await optimizeTech(tech);
+      } catch (e) {
+        log("Route optimize skipped for " + tech.name + ": " + e.message);
+        tech.lastRouteCoords = techFallbackCoords(tech);
+        tech.routeIsRoad = false;
+      }
+    }
+    state.routesOptimized = true;
+  }
+
+  async function bookAppointment() {
+    const state = currentState();
+    if (!selectedSlot || !state || !selectedDateKey) return;
+    const customer = getSelectedCustomer();
+    const displayName = el("custName").value.trim() || (customer && customer.name);
+    if (!customer || !displayName) return;
+    const tech = state.technicians.find((t) => t.id === selectedSlot.techId);
+    if (!tech) return;
+    el("btnBook").disabled = true;
+    setStatus("Booking & re-optimizing <strong>" + escapeHtml(tech.name) + "</strong>…");
+    const appt = {
+      id: "job-" + Date.now(),
+      customerId: customer.id,
+      name: displayName,
+      lat: customer.lat,
+      lng: customer.lng,
+      hour: selectedSlot.hour,
+      startUnix: unixLocal(selectedSlot.hour, 0),
+      endUnix: unixLocal(selectedSlot.hour, 0) + SERVICE_SEC,
+      travelFromPrevSec: selectedSlot.travelIn,
+      phone: el("custPhone").value.trim(),
+      serviceType: el("serviceType").value,
+    };
+    tech.appointments.push(appt);
+    tech.routeIsRoad = false;
+    bookingCount += 1;
+    try {
+      await optimizeTech(tech);
+      log("Booked " + slotLabel(appt.hour) + " → " + tech.name + " on " + selectedDateKey);
+    } catch (e) {
+      log("Optimize error: " + e.message + " — schedule kept");
+      tech.lastRouteCoords = techFallbackCoords(tech);
+      tech.routeIsRoad = false;
+    }
+    selectedSlot = null;
+    el("slotGrid").innerHTML = '<div class="empty-slots">Locate the next customer address to see more slots.</div>';
+    el("slotBadge").hidden = true;
+    el("custName").value = "";
+    el("custPhone").value = "";
+    locatedCustomer = null;
+    assignedTechId = null;
+    assignedTravelSec = null;
+    assignedCenterKm = null;
+    cityKey = null;
+    if (el("addrInput")) el("addrInput").value = "";
+    setLocStatus("Type a US address. After locate, the desk picks the nearest service center and technician.");
+    await renderTechsWithWaiting();
+    redrawMap();
+    renderCalendar();
+    updateConfirm();
+    setStatus("Booked on <strong>" + escapeHtml(formatLongDate(selectedDateKey)) + "</strong>. Locate the next customer address for another appointment.");
+  }
+
+  function supportsWebGL() {
+    try {
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl", { failIfMajorPerformanceCaveat: false })
+        || canvas.getContext("experimental-webgl", { failIfMajorPerformanceCaveat: false });
+      if (!gl) return false;
+      // Release the probe context so we don't exhaust limited GPU contexts
+      try {
+        const lose = gl.getExtension("WEBGL_lose_context");
+        if (lose) lose.loseContext();
+      } catch (_) {}
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showMapPlaceholder(message, withRetry) {
+    const ph = el("mapPlaceholder");
+    ph.classList.remove("is-hidden");
+    ph.innerHTML = "";
+    const p = document.createElement("div");
+    p.textContent = message;
+    ph.appendChild(p);
+    const hint = document.createElement("div");
+    hint.className = "map-hint";
+    hint.innerHTML = "Tip: open this file in <strong>Chrome/Edge</strong> (not an embedded preview). Booking still works without the map.";
+    ph.appendChild(hint);
+    if (withRetry) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "secondary map-retry";
+      btn.textContent = "Retry map";
+      btn.addEventListener("click", () => {
+        loadMapSafe(true);
+      });
+      ph.appendChild(btn);
+    }
+  }
+
+  function hideMapPlaceholder() {
+    el("mapPlaceholder").classList.add("is-hidden");
+  }
+
+  function destroyMap() {
+    clearMarkers();
+    mapReady = false;
+    if (nbMap) {
+      try {
+        if (typeof nbMap.remove === "function") nbMap.remove();
+        else if (nbMap.map && typeof nbMap.map.remove === "function") nbMap.map.remove();
+      } catch (_) {}
+      nbMap = null;
+    }
+    // Replace the container node to drop any leftover WebGL canvas/context
+    const old = el("map");
+    if (old && old.parentNode) {
+      const fresh = document.createElement("div");
+      fresh.id = "map";
+      fresh.setAttribute("aria-label", "Technician route map");
+      old.parentNode.replaceChild(fresh, old);
+    }
+  }
+
+  function waitForMapLayout() {
+    return new Promise((resolve) => {
+      const wrap = document.querySelector(".map-wrap");
+      try {
+        if (wrap) wrap.scrollIntoView({ block: "center", behavior: "auto" });
+      } catch (_) {}
+      // Two frames + short delay so layout/paint complete before WebGL
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(resolve, 50);
+        });
+      });
+    });
+  }
+
+  async function ensureMap() {
+    const key = getApiKey();
+    if (!key) throw new Error("Enter your NextBillion API key.");
+    if (typeof nextbillion === "undefined") throw new Error("Maps SDK failed to load.");
+    if (typeof nextbillion.setApiKey === "function") nextbillion.setApiKey(key);
+    else nextbillion.apiKey = key;
+
+    const city = cityKey ? CITIES[cityKey] : null;
+    const mapCenterLngLat = city ? city.center : US_MAP.center;
+    const mapZoom = city ? city.zoom : US_MAP.zoom;
+    const center = { lat: mapCenterLngLat[1], lng: mapCenterLngLat[0] };
+
+    // Match the working map-first demo: reveal the map surface *before* constructing WebGL
+    hideMapPlaceholder();
+    await waitForMapLayout();
+
+    if (nbMap) {
+      clearMarkers();
+      const ml = getMlMap();
+      if (ml && ml.flyTo) ml.flyTo({ center: mapCenterLngLat, zoom: mapZoom });
+      else if (nbMap.setCenter) {
+        nbMap.setCenter(center);
+        if (nbMap.setZoom) nbMap.setZoom(mapZoom);
+      }
+      try {
+        const ml2 = getMlMap();
+        if (ml2 && ml2.resize) ml2.resize();
+      } catch (_) {}
+      mapReady = true;
+      return;
+    }
+
+    const container = el("map");
+    if (!container || container.clientWidth < 2 || container.clientHeight < 2) {
+      throw new Error("Map container has no size (" +
+        (container ? container.clientWidth + "x" + container.clientHeight : "missing") + ")");
+    }
+
+    mapReady = false;
+    // Same options as ai-appointment-scheduler-demo.html (no extra flags)
+    nbMap = new nextbillion.maps.Map({
+      container: container,
+      style: "https://api.nextbillion.io/maps/streets/style.json",
+      center: center,
+      zoom: mapZoom,
+    });
+
+    await new Promise((resolve, reject) => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        mapReady = true;
+        try {
+          const ml = getMlMap();
+          if (ml && ml.resize) ml.resize();
+          // Second resize after layout settles
+          setTimeout(() => { try { if (ml && ml.resize) ml.resize(); } catch (_) {} }, 200);
+        } catch (_) {}
+        resolve();
+      };
+      const fail = (msg) => {
+        if (settled) return;
+        settled = true;
+        reject(new Error(msg || "Map failed to load"));
+      };
+      try {
+        nbMap.on("load", done);
+        nbMap.on("error", (e) => {
+          const msg = (e && e.error && e.error.message) || (e && e.message) || "";
+          // Ignore late tile errors once the map is up
+          if (mapReady) return;
+          if (/webgl/i.test(String(msg))) fail(msg);
+          // Non-WebGL style errors: still try to continue on timeout
+        });
+      } catch (_) {
+        setTimeout(done, 400);
+      }
+      setTimeout(() => {
+        if (!settled) {
+          if (mapReady || getMlMap()) done();
+          else fail("Map load timed out");
+        }
+      }, 12000);
+    });
+  }
+
+  async function loadMapSafe(isRetry) {
+    if (!getApiKey()) {
+      showMapPlaceholder("Add an API key and click Start desk again to load the map. Booking still works without a key.", false);
+      return;
+    }
+    showMapPlaceholder(isRetry ? "Retrying map…" : "Loading map…", false);
+    try {
+      if (isRetry) destroyMap();
+      // Brief pause helps after a failed WebGL context
+      if (isRetry) await new Promise((r) => setTimeout(r, 300));
+      await ensureMap();
+      log("Map ready");
+      redrawMap();
+      if (locatedCustomer) flyMapToCustomer(locatedCustomer);
+    } catch (e) {
+      log("Map warning: " + e.message);
+      destroyMap();
+      const webglOk = supportsWebGL();
+      showMapPlaceholder(
+        "Map unavailable (" + e.message + "). " +
+        (webglOk
+          ? "WebGL probe OK — try Retry map, or open this HTML in Chrome/Edge (not Cursor preview)."
+          : "WebGL not available in this window."),
+        true
+      );
+    }
+  }
+
+  function initBookingWindow() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    windowStart = new Date(today);
+    if (windowStart.getDay() === 0) windowStart.setDate(windowStart.getDate() + 1);
+    windowEnd = new Date(windowStart);
+    windowEnd.setDate(windowEnd.getDate() + BOOK_WINDOW_DAYS);
+    calMonth = new Date(windowStart.getFullYear(), windowStart.getMonth(), 1);
+  }
+
+  async function startDesk() {
+    cityKey = null;
+    dayStates = {};
+    bookingCount = 0;
+    useHaversineFallback = false;
+    selectedSlot = null;
+    selectedDateKey = null;
+    locatedCustomer = null;
+    assignedTechId = null;
+    assignedTravelSec = null;
+    assignedCenterKm = null;
+    deskReady = false;
+    destroyMap();
+
+    initBookingWindow();
+    hideSuggest();
+    if (el("addrInput")) el("addrInput").value = "";
+    setLocStatus("Type a US address. After locate, the desk picks the nearest service center and technician.");
+    el("log").textContent = "Ready.";
+    el("selectedDayLabel").textContent = "No day selected — pick a date on the calendar";
+    el("slotGrid").innerHTML = '<div class="empty-slots">Locate an address to assign a service center, then select a day.</div>';
+    el("techList").innerHTML = '<div class="tech-meta">Locate a customer address to assign a service center and nearest technician.</div>';
+    showMapPlaceholder("Loading map…", false);
+
+    // Unlock calendar + location immediately (do not wait for map)
+    deskReady = true;
+    renderCalendar();
+    updateConfirm();
+    setStatus("Desk is ready with <strong>no service center pre-selected</strong>. Search a customer address to assign the nearest center and technician.");
+    log("Desk started (no center yet) · booking window " + toDateKey(windowStart) + " → " + toDateKey(windowEnd));
+
+    // Load map after UI unlocks (async — booking works even if map fails)
+    loadMapSafe(false);
+  }
+
+  async function resetDay() {
+    if (!selectedDateKey) {
+      setStatus("Select a day first, then reset.");
+      return;
+    }
+    dayStates[selectedDateKey] = cloneDayState(selectedDateKey);
+    selectedSlot = null;
+    const state = dayStates[selectedDateKey];
+    showSlotLoading("Resetting " + formatLongDate(selectedDateKey) + " — re-optimizing routes…");
+    await renderTechsWithWaiting();
+    redrawMap();
+    await optimizeDayTechnicians(state, { force: true });
+    await renderTechsWithWaiting();
+    redrawMap();
+    renderCalendar();
+    scheduleRecommend();
+    setStatus("Reset schedules for <strong>" + escapeHtml(formatLongDate(selectedDateKey)) + "</strong>.");
+    log("Reset " + selectedDateKey);
+  }
+
+  el("btnLoad").addEventListener("click", () => startDesk().catch((e) => { alert(e.message || e); log("Error: " + e.message); }));
+  el("btnReset").addEventListener("click", () => resetDay().catch((e) => log(e.message)));
+  el("btnBook").addEventListener("click", () => bookAppointment().catch((e) => { alert(e.message || e); log(e.message); }));
+  el("btnClearSlot").addEventListener("click", () => {
+    selectedSlot = null;
+    document.querySelectorAll(".slot").forEach((x) => x.classList.remove("selected"));
+    updateConfirm();
+  });
+  el("calPrev").addEventListener("click", () => {
+    if (!calMonth) return;
+    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1);
+    renderCalendar();
+  });
+  el("calNext").addEventListener("click", () => {
+    if (!calMonth) return;
+    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1);
+    renderCalendar();
+  });
+  // Event delegation — reliable after calendar re-renders
+  el("calGrid").addEventListener("click", (e) => {
+    const btn = e.target.closest("button.cal-day");
+    if (!btn || btn.disabled || !btn.dataset.dateKey) return;
+    selectDay(btn.dataset.dateKey).catch((err) => {
+      log("Day select error: " + err.message);
+      setStatus("Could not select day: " + escapeHtml(err.message));
+    });
+  });
+  el("custName").addEventListener("input", () => { updateConfirm(); if (selectedDateKey) scheduleRecommend(); });
+  el("btnGeocode").addEventListener("click", () => {
+    runGeocodeFromInput().catch((e) => setLocStatus(e.message || "Geocode failed", "err"));
+  });
+  el("addrInput").addEventListener("input", () => {
+    clearTimeout(autocompleteTimer);
+    autocompleteTimer = setTimeout(() => {
+      runAutocomplete().catch((e) => setLocStatus(e.message || "Autocomplete failed", "err"));
+    }, 280);
+  });
+  el("addrInput").addEventListener("keydown", (e) => {
+    const list = el("addrSuggest");
+    if (e.key === "Escape") { hideSuggest(); return; }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const pick = (!list.hidden && suggestItems.length)
+        ? suggestItems[suggestActive >= 0 ? suggestActive : 0]
+        : null;
+      if (pick) {
+        applyLocatedPlace(pick, "Autocomplete API").catch((err) => setLocStatus(err.message || "Locate failed", "err"));
+      } else {
+        runGeocodeFromInput();
+      }
+      return;
+    }
+    if (list.hidden || !suggestItems.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const delta = e.key === "ArrowDown" ? 1 : -1;
+      suggestActive = (suggestActive + delta + suggestItems.length) % suggestItems.length;
+      list.querySelectorAll("button").forEach((b, i) => b.classList.toggle("active", i === suggestActive));
+    }
+  });
+  el("addrSuggest").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-idx]");
+    if (!btn) return;
+    const idx = Number(btn.dataset.idx);
+    if (!suggestItems[idx]) return;
+    applyLocatedPlace(suggestItems[idx], "Autocomplete API").catch((err) => setLocStatus(err.message || "Locate failed", "err"));
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".addr-field")) hideSuggest();
+  });
+  function openGuide() {
+    const overlay = el("logicOverlay");
+    overlay.classList.add("open");
+    overlay.setAttribute("aria-hidden", "false");
+  }
+  function closeGuide() {
+    const overlay = el("logicOverlay");
+    overlay.classList.remove("open");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+  el("btnLogic").addEventListener("click", openGuide);
+  el("btnLogicClose").addEventListener("click", closeGuide);
+  el("logicOverlay").addEventListener("click", (e) => { if (e.target === el("logicOverlay")) closeGuide(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && el("logicOverlay").classList.contains("open")) closeGuide();
+  });
+  // Smooth-scroll in-guide section links
+  el("logicOverlay").querySelectorAll(".guide-tabs a").forEach((a) => {
+    a.addEventListener("click", (e) => {
+      const id = a.getAttribute("href");
+      const target = id && el("logicOverlay").querySelector(id);
+      if (!target) return;
+      e.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+  // Init shell (no service center until address locate)
+  cityKey = null;
+  calMonth = new Date();
+  calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
+  renderCalendar();
+  updateConfirm();
+  renderTechsWithWaiting().catch(() => {});
+})();
+  </script>
+</body>
+</html>
